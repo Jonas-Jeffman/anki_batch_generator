@@ -1,0 +1,8 @@
+mode,term,hint,tags
+en_word,ubiquitous,common in technology articles,"english,exam"
+en_word,resilient,,english
+ja_word,曖昧,for daily conversation,"japanese,n2"
+ja_word,挑戦,,japanese
+interview,What is CAP theorem?,for backend interview,"interview,system_design"
+paper,Transformer attention,NLP paper reading,"paper,ai"
+interest,为什么天空是蓝色？,explain in simple words,"interest,science"

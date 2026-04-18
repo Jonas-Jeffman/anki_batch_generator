@@ -1,0 +1,1046 @@
+#!/usr/bin/env python3
+"""
+Batch-generate or extend an Anki deck from a JSON array.
+
+Examples:
+  # Uses terms.json (or terms.txt) next to this script if you omit --terms-json/--terms-file.
+  python anki_batch_generator_optimized.py \
+    --mode en_word \
+    --deck-name 'English::My Deck' \
+    --openai-api-key "$OPENAI_API_KEY"
+
+  python anki_batch_generator_optimized.py \
+    --mode en_word \
+    --terms-json '["apologise", "burgeon"]' \
+    --deck-name 'English::My Deck' \
+    --model gpt-5.4 \
+    --openai-api-key "$OPENAI_API_KEY"
+
+  python anki_batch_generator_optimized.py \
+    --mode interview \
+    --terms-json '["Explain Qwen MoE in simple terms"]' \
+    --deck-name 'Interview::Tech' \
+    --model gpt-5.4
+
+Key upgrades compared with the original script:
+- Accepts JSON arrays directly instead of requiring CSV.
+- Supports extending an existing deck by reusing the same deck name and stable note GUIDs.
+- Downloads English/Japanese audio into the .apkg media package.
+- Uses higher-end OpenAI models by default.
+- Raises default sleep between requests.
+- Adds retries, caching, and clearer error handling.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import html
+import json
+import os
+import re
+import sys
+import time
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Callable, Dict, Iterable, List, Optional, Tuple
+
+import genanki
+import requests
+from openai import OpenAI
+
+SUPPORTED_MODES = {"en_word", "ja_word", "interview", "paper", "interest"}
+DEFAULT_TEXT_MODEL = "gpt-5.4"
+DEFAULT_TTS_MODEL = "gpt-4o-mini-tts"
+DEFAULT_SLEEP = 2.0
+
+# Bump when LLM JSON schema changes so disk cache does not reuse stale shapes.
+LLM_SCHEMA_VERSION = "no_zh_v1"
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+DEFAULT_TERMS_JSON = SCRIPT_DIR / "terms.json"
+DEFAULT_TERMS_TXT = SCRIPT_DIR / "terms.txt"
+# Local-only file: put your API key on the first non-empty, non-# line. Do not commit (see .gitignore).
+LOCAL_OPENAI_KEY_FILE = SCRIPT_DIR / ".openai_api_key"
+
+
+def read_optional_local_openai_key() -> str:
+    """Load key from LOCAL_OPENAI_KEY_FILE if present (one secret per line, # comments allowed)."""
+    path = LOCAL_OPENAI_KEY_FILE
+    if not path.is_file():
+        return ""
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            s = line.strip()
+            if not s or s.startswith("#"):
+                continue
+            if s.startswith("OPENAI_API_KEY="):
+                return s.split("=", 1)[1].strip().strip('"').strip("'")
+            return s
+    except OSError:
+        return ""
+    return ""
+
+
+def resolve_openai_api_key(cli_value: str) -> str:
+    order = (
+        cli_value.strip(),
+        os.getenv("OPENAI_API_KEY", "").strip(),
+        read_optional_local_openai_key().strip(),
+    )
+    for key in order:
+        if key:
+            return key
+    return ""
+
+
+def resolve_openai_base_url(cli_value: str) -> Optional[str]:
+    """Third-party OpenAI-compatible gateways (e.g. ChatAnywhere) need a custom base_url."""
+    for raw in (cli_value.strip(), os.getenv("OPENAI_BASE_URL", "").strip()):
+        if raw:
+            url = raw.rstrip("/")
+            if not url.endswith("/v1"):
+                url = f"{url}/v1"
+            return url
+    return None
+
+
+@dataclass
+class InputItem:
+    mode: str
+    term: str
+    hint: str = ""
+    tags: List[str] | None = None
+
+    def normalized_tags(self) -> List[str]:
+        if not self.tags:
+            return []
+        return [str(t).strip().replace(" ", "_") for t in self.tags if str(t).strip()]
+
+
+@dataclass
+class BuiltCard:
+    front: str
+    back: str
+    tags: List[str]
+    guid_seed: str
+
+
+@dataclass
+class AudioAsset:
+    filename: str
+    filepath: Path
+
+
+class CacheStore:
+    def __init__(self, path: Path):
+        self.path = path
+        self.data: Dict[str, Dict] = {}
+        if path.exists():
+            try:
+                self.data = json.loads(path.read_text(encoding="utf-8"))
+            except Exception:
+                self.data = {}
+
+    def get(self, key: str) -> Optional[Dict]:
+        value = self.data.get(key)
+        return value if isinstance(value, dict) else None
+
+    def set(self, key: str, value: Dict) -> None:
+        self.data[key] = value
+
+    def save(self) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.path.write_text(
+            json.dumps(self.data, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+
+def stable_anki_id(seed: str) -> int:
+    digest = hashlib.md5(seed.encode("utf-8")).hexdigest()
+    return int(digest[:8], 16)
+
+
+def stable_guid(*parts: str) -> str:
+    base = "||".join(p.strip() for p in parts)
+    return hashlib.sha1(base.encode("utf-8")).hexdigest()[:20]
+
+
+def slugify(text: str, max_len: int = 60) -> str:
+    text = re.sub(r"\s+", "_", text.strip())
+    text = re.sub(r"[^\w\-\u4e00-\u9fff\u3040-\u30ff]+", "", text)
+    return text[:max_len] or "item"
+
+
+def html_escape(text: str) -> str:
+    return html.escape(text or "").replace("\n", "<br>")
+
+
+def retry_call(fn, retries: int = 3, base_sleep: float = 1.0):
+    last_exc = None
+    for attempt in range(1, retries + 1):
+        try:
+            return fn()
+        except Exception as exc:
+            last_exc = exc
+            if attempt == retries:
+                break
+            time.sleep(base_sleep * attempt)
+    raise last_exc
+
+
+def read_terms_from_json_string(terms_json: str) -> List[str]:
+    try:
+        data = json.loads(terms_json)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Invalid JSON array: {exc}") from exc
+
+    if not isinstance(data, list):
+        raise ValueError("--terms-json must be a JSON array, e.g. '[\"apologise\", \"burgeon\"]'.")
+
+    terms: List[str] = []
+    for item in data:
+        if not isinstance(item, str):
+            raise ValueError("Each array item must be a string.")
+        item = item.strip()
+        if item:
+            terms.append(item)
+    return terms
+
+
+def read_terms_from_json_file(path: Path) -> List[str]:
+    if not path.exists():
+        raise FileNotFoundError(f"Terms JSON file not found: {path}")
+    return read_terms_from_json_string(path.read_text(encoding="utf-8"))
+
+
+def read_terms_from_txt_file(path: Path) -> List[str]:
+    if not path.exists():
+        raise FileNotFoundError(f"Terms text file not found: {path}")
+    terms: List[str] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        terms.append(stripped)
+    return terms
+
+
+def read_terms_from_path(path: Path) -> List[str]:
+    suffix = path.suffix.lower()
+    if suffix == ".txt":
+        return read_terms_from_txt_file(path)
+    if suffix == ".json":
+        return read_terms_from_json_file(path)
+    raise ValueError(f"Unsupported terms file type: {path} (use .json or .txt)")
+
+
+def load_items(args: argparse.Namespace) -> List[InputItem]:
+    terms: List[str] = []
+    if args.terms_json:
+        terms.extend(read_terms_from_json_string(args.terms_json))
+    if args.terms_file:
+        terms.extend(read_terms_from_path(Path(args.terms_file).expanduser().resolve()))
+
+    deduped = []
+    seen = set()
+    for term in terms:
+        key = (args.mode, term)
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(InputItem(mode=args.mode, term=term, hint=args.hint, tags=args.tags or []))
+    return deduped
+
+
+def fetch_english_phonetic(term: str) -> Tuple[str, str]:
+    url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{requests.utils.quote(term)}"
+
+    def _do_request() -> Tuple[str, str]:
+        resp = requests.get(
+            url,
+            timeout=10,
+            headers={"User-Agent": "anki-batch-generator/2.0"},
+        )
+        if not resp.ok:
+            return "", ""
+        data = resp.json()
+        if not isinstance(data, list) or not data:
+            return "", ""
+
+        first = data[0] if isinstance(data[0], dict) else {}
+        phonetic = str(first.get("phonetic") or "").strip()
+        audio_urls: List[str] = []
+        for ph in first.get("phonetics", []) or []:
+            if isinstance(ph, dict) and ph.get("audio"):
+                u = str(ph["audio"]).strip()
+                if u:
+                    audio_urls.append(u)
+        # Prefer British audio when the CDN URL distinguishes UK (common on dictionaryapi.dev).
+        audio = ""
+        lower_urls = [(u, u.lower()) for u in audio_urls]
+        for u, low in lower_urls:
+            if "-uk" in low or "_uk" in low or "british" in low or "/uk/" in low:
+                audio = u
+                break
+        if not audio and audio_urls:
+            audio = audio_urls[0]
+        return phonetic, audio
+
+    try:
+        return retry_call(_do_request, retries=2, base_sleep=1.0)
+    except Exception:
+        return "", ""
+
+
+def build_en_word_prompt() -> str:
+    return (
+        "You are an expert Anki flashcard author for English vocabulary.\n\n"
+
+        "Your task is to turn the given `term` (and optional `hint`) into a concise, "
+        "high-quality Anki flashcard.\n\n"
+
+        "OUTPUT FORMAT (hard requirements):\n"
+        "- Return a single JSON object only.\n"
+        "- No markdown, no explanations, no extra text.\n"
+        "- Keys must be exactly:\n"
+        "  pronunciation_text, definition_en, example_simple_en\n"
+        "- All values must be strings.\n"
+        "- If unknown, use \"\".\n\n"
+
+        "STYLE:\n"
+        "- Use simple, clear English.\n"
+        "- Be concise, no filler.\n"
+        "- Definition must explain meaning, not restate the word.\n"
+        "- Do NOT use circular definitions.\n"
+        "- Example must be natural and easy to understand.\n"
+        "- Avoid complex contexts (war, politics, etc.).\n\n"
+
+        "STRUCTURE (semantic intent for each JSON field):\n"
+        "- pronunciation_text: how to say it (IPA-style is fine)\n"
+        "- definition_en: short gloss\n"
+        "- example_simple_en: one short natural sentence\n\n"
+
+        "MINIMAL JSON EXAMPLE (shape only; use your own values):\n"
+        '{"pronunciation_text":"/ˌɒp.ə.tjuːˈnɪs.tɪk/",'
+        '"definition_en":"using a situation to gain an advantage",'
+        '"example_simple_en":"She made an opportunistic decision to take the job."}\n\n'
+
+        "LANGUAGE RULES:\n"
+        "- Output only English.\n"
+        "- Do NOT include Chinese unless explicitly required in `hint`.\n\n"
+
+        "ACCURACY:\n"
+        "- If `phonetic_hint` is provided, treat it as authoritative.\n"
+        "- Use IPA-style pronunciation.\n"
+        "- Choose the most common meaning.\n"
+    )
+
+def build_ja_word_prompt() -> str:
+    return (
+        "You are an expert Anki flashcard author for Japanese vocabulary.\n\n"
+
+        "OUTPUT FORMAT (hard requirements):\n"
+        "- Return a single JSON object only.\n"
+        "- No markdown, no explanations.\n"
+        "- Keys must be exactly:\n"
+        "  reading_kana, explanation_ja, example_simple_ja\n"
+        "- All values must be strings.\n"
+        "- If unknown, use \"\".\n\n"
+
+        "STYLE:\n"
+        "- Use natural and simple Japanese.\n"
+        "- Be concise, no filler.\n"
+        "- If the concept is complex, express it clearly but briefly.\n"
+        "- Example sentences must be natural and easy to understand.\n\n"
+
+        "LANGUAGE RULES:\n"
+        "- Output must be entirely in Japanese.\n"
+        "- Do NOT include Chinese.\n\n"
+
+        "ACCURACY:\n"
+        "- Use correct kana reading.\n"
+        "- Prefer the most common meaning.\n"
+    )
+
+def build_interview_prompt() -> str:
+    return (
+        "You are an expert Anki flashcard author for technical interview preparation.\n\n"
+
+        "OUTPUT FORMAT (hard requirements):\n"
+        "- Return a single JSON object only.\n"
+        "- No markdown, no explanations.\n"
+        "- Keys must be exactly:\n"
+        "  question_title, concise_answer, key_points, easy_example\n"
+        "- key_points must be an array of 2–5 short strings.\n"
+        "- Other fields must be strings.\n"
+        "- If unknown, use \"\" or [].\n\n"
+
+        "STYLE:\n"
+        "- Be concise and high-signal.\n"
+        "- Avoid long paragraphs.\n"
+        "- If concept is complex, break it into clear key points.\n"
+        "- Each key point should contain one idea only.\n\n"
+
+        "CONTENT RULES:\n"
+        "- Answer must directly address the question.\n"
+        "- Avoid vague or generic statements.\n"
+        "- Example must be simple and intuitive.\n\n"
+
+        "ACCURACY:\n"
+        "- Do not fabricate facts.\n"
+        "- Prefer standard and widely accepted explanations.\n"
+    )
+
+def build_paper_prompt() -> str:
+    return (
+        "You are an expert Anki flashcard author for technical and research concepts.\n\n"
+
+        "OUTPUT FORMAT (hard requirements):\n"
+        "- Return a single JSON object only.\n"
+        "- No markdown, no explanations.\n"
+        "- Keys must be exactly:\n"
+        "  topic_title, core_idea, why_it_matters, easy_example\n"
+        "- All values must be strings.\n"
+        "- If unknown, use \"\".\n\n"
+
+        "STYLE:\n"
+        "- Be concise but informative.\n"
+        "- Focus only on the core idea.\n"
+        "- Avoid unnecessary background.\n"
+        "- If concept is complex, explain it clearly in a structured way.\n\n"
+
+        "CONTENT RULES:\n"
+        "- core_idea = what it is\n"
+        "- why_it_matters = why it is useful\n"
+        "- example must be simple and intuitive\n\n"
+
+        "ACCURACY:\n"
+        "- Do not fabricate claims.\n"
+        "- Prefer widely accepted interpretations.\n"
+    )
+
+def build_interest_prompt() -> str:
+    return (
+        "You are an expert Anki flashcard author for general knowledge and interesting facts.\n\n"
+
+        "OUTPUT FORMAT (hard requirements):\n"
+        "- Return a single JSON object only.\n"
+        "- No markdown, no explanations.\n"
+        "- Keys must be exactly:\n"
+        "  topic_title, what_it_is, fun_fact, easy_example\n"
+        "- All values must be strings.\n"
+        "- If unknown, use \"\".\n\n"
+
+        "STYLE:\n"
+        "- Be concise and easy to remember.\n"
+        "- Avoid long explanations.\n"
+        "- If topic is complex, explain it simply.\n\n"
+
+        "CONTENT RULES:\n"
+        "- what_it_is: simple explanation\n"
+        "- fun_fact: interesting detail\n"
+        "- example: concrete and intuitive\n\n"
+
+        "ACCURACY:\n"
+        "- Do not fabricate facts.\n"
+        "- Prefer common and reliable knowledge.\n"
+    )
+
+
+# Must be defined after all build_*_prompt functions (references by name).
+PROMPT_MAP: Dict[str, Callable[[], str]] = {
+    "en_word": build_en_word_prompt,
+    "ja_word": build_ja_word_prompt,
+    "interview": build_interview_prompt,
+    "paper": build_paper_prompt,
+    "interest": build_interest_prompt,
+}
+
+
+def build_user_payload(item: InputItem, phonetic_hint: str) -> str:
+    """Variable inputs only; mode-specific rules live in PROMPT_MAP system prompts."""
+    return (
+        "Fill the JSON fields described in your system instructions using this input.\n\n"
+        f"term: {item.term}\n"
+        f"hint: {item.hint or '(none)'}\n"
+        f"phonetic_hint: {phonetic_hint or '(none)'}\n"
+    )
+
+
+def call_openai_json(
+    client: OpenAI,
+    model: str,
+    item: InputItem,
+    phonetic_hint: str,
+    reasoning_effort: str,
+) -> Dict:
+    system_prompt = PROMPT_MAP[item.mode]()
+    user_prompt = build_user_payload(item, phonetic_hint)
+
+    def _call() -> Dict:
+        kwargs = {
+            "model": model,
+            "temperature": 0.2,
+            "response_format": {"type": "json_object"},
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+        }
+        # Newer GPT-5 series supports reasoning effort; older families will ignore this parameter
+        # if the installed SDK/API surface accepts it.
+        if model.startswith("gpt-5"):
+            kwargs["reasoning_effort"] = reasoning_effort
+
+        response = client.chat.completions.create(**kwargs)
+        text = (response.choices[0].message.content or "").strip()
+        if not text:
+            raise ValueError("OpenAI returned empty content.")
+        return json.loads(text)
+
+    return retry_call(_call, retries=3, base_sleep=2.0)
+
+
+def synthesize_tts_to_file(
+    client: OpenAI,
+    tts_model: str,
+    voice: str,
+    text: str,
+    filepath: Path,
+) -> None:
+    filepath.parent.mkdir(parents=True, exist_ok=True)
+
+    def _call() -> None:
+        # openai>=1.14 uses response_format; older code used format= (removed).
+        with client.audio.speech.with_streaming_response.create(
+            model=tts_model,
+            voice=voice,
+            input=text,
+            response_format="mp3",
+        ) as response:
+            response.stream_to_file(filepath)
+
+    retry_call(_call, retries=3, base_sleep=2.0)
+
+
+def _is_plausible_mp3(path: Path) -> bool:
+    """Reject empty files or HTML error bodies saved with .mp3 extension."""
+    try:
+        if not path.is_file() or path.stat().st_size < 256:
+            return False
+        with path.open("rb") as f:
+            head = f.read(4)
+        if head.startswith(b"ID3"):
+            return True
+        if len(head) >= 2 and head[0] == 0xFF and (head[1] & 0xE0) == 0xE0:
+            return True
+        # Not MP3 (often '<htm' or '{"er')
+        return False
+    except OSError:
+        return False
+
+
+def maybe_download_external_audio(audio_url: str, filepath: Path) -> bool:
+    if not audio_url:
+        return False
+
+    def _call() -> bool:
+        resp = requests.get(
+            audio_url,
+            timeout=15,
+            stream=True,
+            headers={"User-Agent": "anki-batch-generator/2.0"},
+        )
+        if not resp.ok:
+            return False
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+        with filepath.open("wb") as f:
+            for chunk in resp.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
+        return filepath.exists() and filepath.stat().st_size > 0
+
+    try:
+        return bool(retry_call(_call, retries=2, base_sleep=1.0))
+    except Exception:
+        return False
+
+
+def ensure_english_audio(
+    client: OpenAI,
+    media_dir: Path,
+    item: InputItem,
+    preferred_external_url: str,
+    tts_model: str,
+    voice: str,
+) -> Optional[AudioAsset]:
+    filename = f"audio_en_{slugify(item.term)}_{stable_guid(item.mode, item.term)[:8]}.mp3"
+    filepath = media_dir / filename
+    if _is_plausible_mp3(filepath):
+        return AudioAsset(filename=filename, filepath=filepath)
+
+    if maybe_download_external_audio(preferred_external_url, filepath):
+        if _is_plausible_mp3(filepath):
+            return AudioAsset(filename=filename, filepath=filepath)
+        try:
+            filepath.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+    try:
+        synthesize_tts_to_file(client, tts_model, voice, item.term, filepath)
+    except Exception:
+        # Third-party gateways may not implement TTS; still produce the card without audio.
+        return None
+    if not _is_plausible_mp3(filepath):
+        try:
+            filepath.unlink(missing_ok=True)
+        except OSError:
+            pass
+        return None
+    return AudioAsset(filename=filename, filepath=filepath)
+
+
+def ensure_japanese_audio(
+    client: OpenAI,
+    media_dir: Path,
+    item: InputItem,
+    tts_model: str,
+    voice: str,
+) -> Optional[AudioAsset]:
+    filename = f"audio_ja_{slugify(item.term)}_{stable_guid(item.mode, item.term)[:8]}.mp3"
+    filepath = media_dir / filename
+    if _is_plausible_mp3(filepath):
+        return AudioAsset(filename=filename, filepath=filepath)
+
+    try:
+        synthesize_tts_to_file(client, tts_model, voice, item.term, filepath)
+    except Exception:
+        return None
+    if not _is_plausible_mp3(filepath):
+        try:
+            filepath.unlink(missing_ok=True)
+        except OSError:
+            pass
+        return None
+    return AudioAsset(filename=filename, filepath=filepath)
+
+
+def build_en_word_card(term: str, llm: Dict, dict_phonetic: str, audio: Optional[AudioAsset]) -> BuiltCard:
+    ipa = (dict_phonetic or "").strip() or str(llm.get("pronunciation_text") or "").strip()
+    if ipa and not ipa.startswith("/"):
+        ipa = f"/{ipa.strip('/')}/"
+
+    definition = str(llm.get("definition_en") or "").strip()
+    example_en = str(llm.get("example_simple_en") or "").strip()
+
+    sound = f"[sound:{audio.filename}]" if audio else ""
+    # Front: one centered line — <b>word</b> + one ASCII space + IPA (normal weight, not bold).
+    ipa_html = html_escape(ipa).strip()
+    word_ipa_gap = " "
+    if ipa_html:
+        front = (
+            '<div style="text-align:center">'
+            f"<b>{html_escape(term)}</b>{word_ipa_gap}{ipa_html}"
+            "</div>"
+        )
+    else:
+        front = (
+            '<div style="text-align:center">'
+            f"<b>{html_escape(term)}</b>"
+            "</div>"
+        )
+    # Put [sound:] on its own line first — some AnkiDroid/WebView builds handle this more reliably.
+    if sound:
+        back = (
+            f"{sound}<br>"
+            f"<b>Definition (EN):</b> {html_escape(definition)}<br>"
+            f"<b>Example:</b><br>{html_escape(example_en)}"
+        )
+    else:
+        back = (
+            f"<b>Definition (EN):</b> {html_escape(definition)}<br>"
+            f"<b>Example:</b><br>{html_escape(example_en)}"
+        )
+    return BuiltCard(
+        front=front,
+        back=back,
+        tags=["english", "vocab"],
+        guid_seed=f"en_word::{term.lower()}",
+    )
+
+
+def build_ja_word_card(term: str, llm: Dict, audio: Optional[AudioAsset]) -> BuiltCard:
+    reading = str(llm.get("reading_kana") or "").strip()
+    explanation_ja = str(llm.get("explanation_ja") or "").strip()
+    example_ja = str(llm.get("example_simple_ja") or "").strip()
+
+    sound = f"[sound:{audio.filename}]" if audio else ""
+    front = html_escape(term)
+    if sound:
+        back = (
+            f"{sound}<br>"
+            f"<b>読み方:</b> {html_escape(reading)}<br>"
+            f"<b>説明 (日本語):</b> {html_escape(explanation_ja)}<br>"
+            f"<b>例文:</b> {html_escape(example_ja)}"
+        )
+    else:
+        back = (
+            f"<b>読み方:</b> {html_escape(reading)}<br>"
+            f"<b>説明 (日本語):</b> {html_escape(explanation_ja)}<br>"
+            f"<b>例文:</b> {html_escape(example_ja)}"
+        )
+    return BuiltCard(
+        front=front,
+        back=back,
+        tags=["japanese", "vocab"],
+        guid_seed=f"ja_word::{term}",
+    )
+
+
+def build_knowledge_card(mode: str, term: str, llm: Dict) -> BuiltCard:
+    mode_tag = {
+        "interview": "interview",
+        "paper": "paper",
+        "interest": "interest",
+    }[mode]
+
+    if mode == "interview":
+        title = str(llm.get("question_title") or term).strip()
+        answer = str(llm.get("concise_answer") or "").strip()
+        points = llm.get("key_points") or []
+        if not isinstance(points, list):
+            points = []
+        points_html = "".join(f"<li>{html_escape(str(p))}</li>" for p in points[:5])
+        example = str(llm.get("easy_example") or "").strip()
+        front = html_escape(title)
+        back = (
+            f"<b>Answer:</b> {html_escape(answer)}<br>"
+            f"<b>Key Points:</b><ul>{points_html}</ul>"
+            f"<b>Example:</b> {html_escape(example)}"
+        )
+    elif mode == "paper":
+        title = str(llm.get("topic_title") or term).strip()
+        core = str(llm.get("core_idea") or "").strip()
+        why = str(llm.get("why_it_matters") or "").strip()
+        example = str(llm.get("easy_example") or "").strip()
+        front = html_escape(title)
+        back = (
+            f"<b>Core Idea:</b> {html_escape(core)}<br>"
+            f"<b>Why It Matters:</b> {html_escape(why)}<br>"
+            f"<b>Example:</b> {html_escape(example)}"
+        )
+    else:
+        title = str(llm.get("topic_title") or term).strip()
+        what_is = str(llm.get("what_it_is") or "").strip()
+        fun_fact = str(llm.get("fun_fact") or "").strip()
+        example = str(llm.get("easy_example") or "").strip()
+        front = html_escape(title)
+        back = (
+            f"<b>What It Is:</b> {html_escape(what_is)}<br>"
+            f"<b>Fun Fact:</b> {html_escape(fun_fact)}<br>"
+            f"<b>Example:</b> {html_escape(example)}"
+        )
+
+    return BuiltCard(
+        front=front,
+        back=back,
+        tags=[mode_tag, "knowledge"],
+        guid_seed=f"{mode}::{term}",
+    )
+
+
+def build_card(
+    client: OpenAI,
+    item: InputItem,
+    model: str,
+    tts_model: str,
+    media_dir: Path,
+    tts_voice_en: str,
+    tts_voice_ja: str,
+    cache: CacheStore,
+    reasoning_effort: str,
+) -> Tuple[BuiltCard, List[AudioAsset]]:
+    cache_key = hashlib.sha1(
+        json.dumps(
+            {
+                "mode": item.mode,
+                "term": item.term,
+                "hint": item.hint,
+                "model": model,
+                "llm_schema": LLM_SCHEMA_VERSION,
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()
+
+    dict_phonetic = ""
+    dict_audio = ""
+    if item.mode == "en_word":
+        dict_phonetic, dict_audio = fetch_english_phonetic(item.term)
+
+    cached = cache.get(cache_key)
+    if cached:
+        llm = cached
+    else:
+        llm = call_openai_json(
+            client=client,
+            model=model,
+            item=item,
+            phonetic_hint=dict_phonetic,
+            reasoning_effort=reasoning_effort,
+        )
+        cache.set(cache_key, llm)
+
+    assets: List[AudioAsset] = []
+    if item.mode == "en_word":
+        audio = ensure_english_audio(
+            client=client,
+            media_dir=media_dir,
+            item=item,
+            preferred_external_url=dict_audio,
+            tts_model=tts_model,
+            voice=tts_voice_en,
+        )
+        if audio:
+            assets.append(audio)
+        built = build_en_word_card(item.term, llm, dict_phonetic, audio)
+    elif item.mode == "ja_word":
+        audio = ensure_japanese_audio(
+            client=client,
+            media_dir=media_dir,
+            item=item,
+            tts_model=tts_model,
+            voice=tts_voice_ja,
+        )
+        if audio:
+            assets.append(audio)
+        built = build_ja_word_card(item.term, llm, audio)
+    else:
+        built = build_knowledge_card(item.mode, item.term, llm)
+
+    final_tags = list(dict.fromkeys(built.tags + item.normalized_tags()))
+    return BuiltCard(
+        front=built.front,
+        back=built.back,
+        tags=final_tags,
+        guid_seed=built.guid_seed,
+    ), assets
+
+
+def write_preview_json(path: Path, rows: List[BuiltCard]) -> None:
+    payload = [
+        {"front": r.front, "back": r.back, "tags": r.tags, "guid_seed": r.guid_seed}
+        for r in rows
+    ]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def create_deck_apkg(
+    deck_name: str,
+    output_apkg: Path,
+    cards: List[BuiltCard],
+    media_files: Iterable[Path],
+) -> None:
+    deck_id = stable_anki_id(f"deck::{deck_name}")
+    model_id = stable_anki_id("model::anki_batch_generator::basic_v2")
+
+    model = genanki.Model(
+        model_id=model_id,
+        name="BatchAIGeneratedBasicModelV2",
+        fields=[{"name": "Front"}, {"name": "Back"}],
+        templates=[
+            {
+                "name": "Card 1",
+                "qfmt": "{{Front}}",
+                "afmt": "{{FrontSide}}<hr id=\"answer\">{{Back}}",
+            }
+        ],
+        css="""
+.card {
+  font-family: Arial, sans-serif;
+  font-size: 20px;
+  text-align: left;
+  color: #111;
+  background-color: #fff;
+  line-height: 1.6;
+}
+ul {
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+""",
+    )
+
+    deck = genanki.Deck(deck_id, deck_name)
+    for card in cards:
+        note = genanki.Note(
+            model=model,
+            fields=[card.front, card.back],
+            tags=card.tags,
+            guid=stable_guid(deck_name, card.guid_seed),
+        )
+        deck.add_note(note)
+
+    package = genanki.Package(deck)
+    package.media_files = [str(p) for p in media_files]
+    output_apkg.parent.mkdir(parents=True, exist_ok=True)
+    package.write_to_file(str(output_apkg))
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Generate or extend an Anki deck from a JSON array.")
+    parser.add_argument("--mode", required=True, choices=sorted(SUPPORTED_MODES))
+    parser.add_argument(
+        "--terms-json",
+        default="",
+        help='JSON array string, e.g. ["apologise", "burgeon"]',
+    )
+    parser.add_argument(
+        "--terms-file",
+        default="",
+        help=(
+            "Path to a .json array or .txt (one term per line, # for comments). "
+            "If omitted with empty --terms-json, uses terms.json next to this script, "
+            "else terms.txt in the same folder."
+        ),
+    )
+    parser.add_argument("--hint", default="", help="Optional shared hint applied to all items.")
+    parser.add_argument("--tags", nargs="*", default=[], help="Optional extra tags.")
+    parser.add_argument("--deck-name", required=True, help="Use the same deck name as the existing deck to extend it.")
+    parser.add_argument("--output", default="anki_batch_output.apkg", help="Output .apkg path.")
+    parser.add_argument("--preview-json", default="anki_batch_preview.json", help="Preview JSON path.")
+    parser.add_argument("--cache-path", default="anki_batch_cache.json", help="LLM cache JSON path.")
+    parser.add_argument("--media-dir", default="anki_media", help="Temporary folder for audio media files.")
+    parser.add_argument("--model", default=DEFAULT_TEXT_MODEL, help="OpenAI text model.")
+    parser.add_argument("--tts-model", default=DEFAULT_TTS_MODEL, help="OpenAI TTS model.")
+    parser.add_argument("--tts-voice-en", default="alloy", help="English TTS voice.")
+    parser.add_argument("--tts-voice-ja", default="alloy", help="Japanese TTS voice.")
+    parser.add_argument("--reasoning-effort", default="medium", choices=["minimal", "low", "medium", "high"])
+    parser.add_argument(
+        "--openai-api-key",
+        default="",
+        help=(
+            "OpenAI API key. If empty: uses OPENAI_API_KEY env, else first line of "
+            f"{LOCAL_OPENAI_KEY_FILE.name} next to this script."
+        ),
+    )
+    parser.add_argument(
+        "--openai-base-url",
+        default="",
+        help=(
+            "OpenAI-compatible API base URL, e.g. https://api.chatanywhere.tech "
+            "(trailing /v1 added if missing). If empty, uses OPENAI_BASE_URL env, else official api.openai.com."
+        ),
+    )
+    parser.add_argument(
+        "--sleep",
+        type=float,
+        default=DEFAULT_SLEEP,
+        help="Sleep seconds between items. Default is intentionally higher to reduce rate spikes.",
+    )
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+
+    api_key = resolve_openai_api_key(args.openai_api_key)
+    if not api_key:
+        print(
+            "ERROR: OpenAI API key is missing. Set --openai-api-key, or OPENAI_API_KEY, or create "
+            f"{LOCAL_OPENAI_KEY_FILE} (one line, not committed to git)."
+        )
+        return 1
+
+    if not args.terms_json and not args.terms_file:
+        if DEFAULT_TERMS_JSON.is_file():
+            args.terms_file = str(DEFAULT_TERMS_JSON)
+            print(f"Using default terms file: {args.terms_file}")
+        elif DEFAULT_TERMS_TXT.is_file():
+            args.terms_file = str(DEFAULT_TERMS_TXT)
+            print(f"Using default terms file: {args.terms_file}")
+        else:
+            print(
+                "ERROR: provide --terms-json or --terms-file, or create "
+                f"{DEFAULT_TERMS_JSON} or {DEFAULT_TERMS_TXT} next to this script."
+            )
+            return 1
+
+    try:
+        items = load_items(args)
+    except Exception as exc:
+        print(f"ERROR: failed to parse input terms: {exc}")
+        return 1
+
+    if not items:
+        print("ERROR: no valid input items.")
+        return 1
+
+    output_apkg = Path(args.output).expanduser().resolve()
+    preview_json = Path(args.preview_json).expanduser().resolve()
+    cache_path = Path(args.cache_path).expanduser().resolve()
+    media_dir = Path(args.media_dir).expanduser().resolve()
+
+    base_url = resolve_openai_base_url(args.openai_base_url)
+    if base_url:
+        print(f"Using OpenAI-compatible base_url: {base_url}")
+        client = OpenAI(api_key=api_key, base_url=base_url)
+    else:
+        client = OpenAI(api_key=api_key)
+    cache = CacheStore(cache_path)
+
+    built_cards: List[BuiltCard] = []
+    media_files: Dict[str, Path] = {}
+    total = len(items)
+
+    for i, item in enumerate(items, start=1):
+        print(f"[{i}/{total}] Generating card: mode={item.mode}, term={item.term}")
+        try:
+            card, assets = build_card(
+                client=client,
+                item=item,
+                model=args.model,
+                tts_model=args.tts_model,
+                media_dir=media_dir,
+                tts_voice_en=args.tts_voice_en,
+                tts_voice_ja=args.tts_voice_ja,
+                cache=cache,
+                reasoning_effort=args.reasoning_effort,
+            )
+            built_cards.append(card)
+            for asset in assets:
+                media_files[asset.filename] = asset.filepath
+        except Exception as exc:
+            print(f"[ERROR] Failed on '{item.term}' ({item.mode}): {exc}")
+        time.sleep(max(0.0, args.sleep))
+
+    cache.save()
+
+    if not built_cards:
+        print("ERROR: all items failed; no deck generated.")
+        return 1
+
+    write_preview_json(preview_json, built_cards)
+    create_deck_apkg(
+        deck_name=args.deck_name,
+        output_apkg=output_apkg,
+        cards=built_cards,
+        media_files=media_files.values(),
+    )
+
+    print("\nDone.")
+    print(f"- Cards generated: {len(built_cards)} / {total}")
+    print(f"- Deck file: {output_apkg}")
+    print(f"- Preview JSON: {preview_json}")
+    print(f"- Media files: {len(media_files)}")
+    print("- To extend an existing Anki deck, keep --deck-name the same as that deck and import the new .apkg.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,10 @@
+.openai_api_key
+*.apkg
+anki_media/
+anki_batch_cache.json
+anki_batch_preview.json
+__pycache__/
+.venv/
+
+# Optional: keep your real word list private; use terms.example.json in the repo as a template.
+# terms.json
