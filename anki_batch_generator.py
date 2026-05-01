@@ -41,9 +41,10 @@ import os
 import re
 import sys
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Dict, Iterable, List, Optional, Tuple
+from urllib.parse import quote
 
 import genanki
 import requests
@@ -55,7 +56,7 @@ DEFAULT_TTS_MODEL = "gpt-4o-mini-tts"
 DEFAULT_SLEEP = 2.0
 
 # Bump when LLM JSON schema changes so disk cache does not reuse stale shapes.
-LLM_SCHEMA_VERSION = "no_zh_v1"
+LLM_SCHEMA_VERSION = "no_zh_v3_ox_l_c"
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_TERMS_JSON = SCRIPT_DIR / "terms.json"
@@ -130,6 +131,17 @@ class BuiltCard:
 class AudioAsset:
     filename: str
     filepath: Path
+
+
+@dataclass
+class EnglishPronunciationInfo:
+    phonetic: str
+    audio_url: str
+    pos_tags: List[str]
+    # Which source supplied phonetic (priority OALD → LDOCE → Cambridge): "oxford" | "longman" | "cambridge" | ""
+    source: str = ""
+    # After audio_url, try these UK URLs in order (Oxford → Longman → Cambridge); TTS only if all fail.
+    audio_fallback_urls: List[str] = field(default_factory=list)
 
 
 class CacheStore:
@@ -254,44 +266,535 @@ def load_items(args: argparse.Namespace) -> List[InputItem]:
     return deduped
 
 
-def fetch_english_phonetic(term: str) -> Tuple[str, str]:
-    url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{requests.utils.quote(term)}"
+POS_CANONICAL = {
+    "noun": "noun",
+    "n": "noun",
+    "verb": "verb",
+    "v": "verb",
+    "adjective": "adjective",
+    "adj": "adjective",
+    "adverb": "adverb",
+    "adv": "adverb",
+    "pronoun": "pronoun",
+    "pron": "pronoun",
+    "preposition": "preposition",
+    "prep": "preposition",
+    "conjunction": "conjunction",
+    "conj": "conjunction",
+    "interjection": "interjection",
+    "interj": "interjection",
+    "determiner": "determiner",
+    "det": "determiner",
+    "article": "article",
+}
+POS_PATTERN = re.compile(
+    r"(?i)\b("
+    r"noun|n|verb|v|adjective|adj|adverb|adv|pronoun|pron|preposition|prep|"
+    r"conjunction|conj|interjection|interj|determiner|det|article"
+    r")\b"
+)
 
-    def _do_request() -> Tuple[str, str]:
+
+def normalize_pos_tag(raw: str) -> str:
+    key = re.sub(r"[^a-z]", "", raw.strip().lower())
+    return POS_CANONICAL.get(key, "")
+
+
+def extract_pos_tags(text: str) -> List[str]:
+    tags: List[str] = []
+    for m in POS_PATTERN.finditer(text or ""):
+        normalized = normalize_pos_tag(m.group(1))
+        if normalized and normalized not in tags:
+            tags.append(normalized)
+    return tags
+
+
+def strip_pos_labels_from_term(term: str) -> str:
+    s = (term or "").strip()
+    if not s:
+        return ""
+    # Remove obvious POS wrappers such as "(verb)" "[noun]" "{adj}".
+    s = re.sub(r"[\(\[\{]\s*(?:noun|n|verb|v|adjective|adj|adverb|adv|pronoun|pron|preposition|prep|conjunction|conj|interjection|interj|determiner|det|article)\s*[\)\]\}]",
+               " ", s, flags=re.IGNORECASE)
+    # Remove standalone POS labels, but keep the lexical word itself.
+    s = POS_PATTERN.sub(" ", s)
+    s = re.sub(r"[\\/|,;]+", " ", s)
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+
+def is_single_word_term(term: str) -> bool:
+    clean = strip_pos_labels_from_term(term)
+    if not clean:
+        return False
+    # Single lexical item only: no whitespace-separated phrase.
+    return len(clean.split()) == 1
+
+
+def _normalize_url(url: str) -> str:
+    u = (url or "").strip()
+    if not u:
+        return ""
+    if u.startswith("//"):
+        return f"https:{u}"
+    if u.startswith("/media/english/"):
+        return f"https://dictionary.cambridge.org{u}"
+    return u
+
+
+def _strip_tags(text: str) -> str:
+    return re.sub(r"<[^>]+>", "", text or "").strip()
+
+
+def fetch_english_from_oxford(term: str) -> EnglishPronunciationInfo:
+    """Oxford Advanced Learner's: UK/BrE block (phons_br, uk_pron / __gb_)."""
+    normalized = term.strip().replace(" ", "-")
+    if not normalized:
+        return EnglishPronunciationInfo(phonetic="", audio_url="", pos_tags=[])
+    url = f"https://www.oxfordlearnersdictionaries.com/definition/english/{quote(normalized)}"
+
+    def _do_request() -> EnglishPronunciationInfo:
         resp = requests.get(
             url,
-            timeout=10,
+            timeout=12,
             headers={"User-Agent": "anki-batch-generator/2.0"},
         )
         if not resp.ok:
-            return "", ""
-        data = resp.json()
-        if not isinstance(data, list) or not data:
-            return "", ""
+            return EnglishPronunciationInfo(phonetic="", audio_url="", pos_tags=[])
+        body = resp.text
+        pos_tags = list(
+            dict.fromkeys(
+                normalize_pos_tag(p)
+                for p in re.findall(
+                    r'<span[^>]*\bclass="pos"[^>]*>([^<]+)</span>',
+                    body,
+                    flags=re.IGNORECASE,
+                )
+            )
+        )
+        pos_tags = [p for p in pos_tags if p]
 
-        first = data[0] if isinstance(data[0], dict) else {}
-        phonetic = str(first.get("phonetic") or "").strip()
-        audio_urls: List[str] = []
-        for ph in first.get("phonetics", []) or []:
-            if isinstance(ph, dict) and ph.get("audio"):
-                u = str(ph["audio"]).strip()
-                if u:
-                    audio_urls.append(u)
-        # Prefer British audio when the CDN URL distinguishes UK (common on dictionaryapi.dev).
+        ipa = ""
         audio = ""
-        lower_urls = [(u, u.lower()) for u in audio_urls]
-        for u, low in lower_urls:
-            if "-uk" in low or "_uk" in low or "british" in low or "/uk/" in low:
-                audio = u
-                break
-        if not audio and audio_urls:
-            audio = audio_urls[0]
-        return phonetic, audio
+        br = re.search(
+            r'<div[^>]*\bphons_br\b[^>]*>.*?data-src-mp3="([^"]+)".*?<span[^>]*\bclass="phon"[^>]*>([^<]+)</span>',
+            body,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        if br:
+            audio = _normalize_url(html.unescape(br.group(1)))
+            ipa = _strip_tags(html.unescape(br.group(2))).replace(" ", "")
+        if not audio:
+            for candidate in re.findall(r'data-src-mp3="([^"]+)"', body, flags=re.IGNORECASE):
+                low = candidate.lower()
+                if "uk_pron" in low and ("__gb_" in candidate or "_gb_" in low):
+                    audio = _normalize_url(html.unescape(candidate))
+                    break
+        if not ipa:
+            phon_br = re.search(
+                r'<div[^>]*\bphons_br\b[^>]*>.*?<span[^>]*\bclass="phon"[^>]*>([^<]+)</span>',
+                body,
+                flags=re.IGNORECASE | re.DOTALL,
+            )
+            if phon_br:
+                ipa = _strip_tags(html.unescape(phon_br.group(1))).replace(" ", "")
+
+        return EnglishPronunciationInfo(
+            phonetic=ipa, audio_url=audio, pos_tags=pos_tags, source="oxford"
+        )
 
     try:
         return retry_call(_do_request, retries=2, base_sleep=1.0)
     except Exception:
-        return "", ""
+        return EnglishPronunciationInfo(phonetic="", audio_url="", pos_tags=[])
+
+
+def fetch_english_from_cambridge(term: str) -> EnglishPronunciationInfo:
+    normalized = term.strip().replace(" ", "-")
+    if not normalized:
+        return EnglishPronunciationInfo(phonetic="", audio_url="", pos_tags=[])
+    url = f"https://dictionary.cambridge.org/dictionary/english/{quote(normalized)}"
+
+    def _do_request() -> EnglishPronunciationInfo:
+        resp = requests.get(
+            url,
+            timeout=12,
+            headers={"User-Agent": "anki-batch-generator/2.0"},
+        )
+        if not resp.ok:
+            return EnglishPronunciationInfo(phonetic="", audio_url="", pos_tags=[])
+        body = resp.text
+        pos_tags = list(dict.fromkeys(normalize_pos_tag(p) for p in re.findall(r'class="pos dpos"[^>]*>([^<]+)<', body, flags=re.IGNORECASE)))
+        pos_tags = [p for p in pos_tags if p]
+
+        uk_block = re.search(r'(<span[^>]*class="[^"]*\buk dpron-i\b[^"]*"[^>]*>.*?</span>)', body, flags=re.IGNORECASE | re.DOTALL)
+        scope = uk_block.group(1) if uk_block else body
+        ipa = ""
+        ipa_match = re.search(r'class="[^"]*\bipa\b[^"]*"[^>]*>(.*?)<', scope, flags=re.IGNORECASE | re.DOTALL)
+        if ipa_match:
+            ipa = _strip_tags(html.unescape(ipa_match.group(1))).replace(" ", "")
+
+        audio = ""
+        audio_match = re.search(r'(?:data-src-mp3|src)="([^"]+)"', scope, flags=re.IGNORECASE)
+        if audio_match:
+            audio = _normalize_url(html.unescape(audio_match.group(1)))
+        if not audio:
+            for candidate in re.findall(r'(?:data-src-mp3|src)="([^"]+)"', body, flags=re.IGNORECASE):
+                low = candidate.lower()
+                if "/uk_" in low or "_uk_" in low or "uk_pron" in low:
+                    audio = _normalize_url(html.unescape(candidate))
+                    break
+        return EnglishPronunciationInfo(
+            phonetic=ipa, audio_url=audio, pos_tags=pos_tags, source="cambridge"
+        )
+
+    try:
+        return retry_call(_do_request, retries=2, base_sleep=1.0)
+    except Exception:
+        return EnglishPronunciationInfo(phonetic="", audio_url="", pos_tags=[])
+
+
+def fetch_english_from_longman(term: str) -> EnglishPronunciationInfo:
+    normalized = term.strip().replace(" ", "-")
+    if not normalized:
+        return EnglishPronunciationInfo(phonetic="", audio_url="", pos_tags=[])
+    url = f"https://www.ldoceonline.com/dictionary/{quote(normalized)}"
+
+    def _do_request() -> EnglishPronunciationInfo:
+        resp = requests.get(
+            url,
+            timeout=12,
+            headers={"User-Agent": "anki-batch-generator/2.0"},
+        )
+        if not resp.ok:
+            return EnglishPronunciationInfo(phonetic="", audio_url="", pos_tags=[])
+        body = resp.text
+        pos_tags = list(dict.fromkeys(normalize_pos_tag(p) for p in re.findall(r'class="POS"[^>]*>([^<]+)<', body, flags=re.IGNORECASE)))
+        pos_tags = [p for p in pos_tags if p]
+
+        ipa = ""
+        # Prefer BrE pronunciation block when available.
+        uk_pron = re.search(r'class="[^"]*\bPRON\b[^"]*"[^>]*>([^<]+)<', body, flags=re.IGNORECASE)
+        if uk_pron:
+            ipa = _strip_tags(html.unescape(uk_pron.group(1))).replace(" ", "")
+
+        audio = ""
+        for candidate in re.findall(r'data-src-mp3="([^"]+)"', body, flags=re.IGNORECASE):
+            low = candidate.lower()
+            if "breprons" in low or "_gb_" in low or "/gb/" in low:
+                audio = _normalize_url(html.unescape(candidate))
+                break
+        return EnglishPronunciationInfo(
+            phonetic=ipa, audio_url=audio, pos_tags=pos_tags, source="longman"
+        )
+
+    try:
+        return retry_call(_do_request, retries=2, base_sleep=1.0)
+    except Exception:
+        return EnglishPronunciationInfo(phonetic="", audio_url="", pos_tags=[])
+
+
+def fetch_english_pronunciation(term: str) -> EnglishPronunciationInfo:
+    """Merge Oxford (OALD) → Longman (LDOCE) → Cambridge: BrE IPA priority; BrE audio URL fallbacks then TTS."""
+    clean_term = strip_pos_labels_from_term(term)
+    if not clean_term:
+        return EnglishPronunciationInfo(phonetic="", audio_url="", pos_tags=[])
+
+    o = fetch_english_from_oxford(clean_term)
+    l = fetch_english_from_longman(clean_term)
+    c = fetch_english_from_cambridge(clean_term)
+
+    seen = set()
+    audio_list: List[str] = []
+    for u in (o.audio_url, l.audio_url, c.audio_url):
+        u = (u or "").strip()
+        if not u:
+            continue
+        u = _normalize_url(u)
+        if u not in seen:
+            seen.add(u)
+            audio_list.append(u)
+    primary_audio = audio_list[0] if audio_list else ""
+    audio_fallbacks = audio_list[1:]
+
+    phonetic = ""
+    source = ""
+    for info, label in ((o, "oxford"), (l, "longman"), (c, "cambridge")):
+        p = (info.phonetic or "").strip()
+        if p:
+            phonetic = p
+            source = label
+            break
+    if not source:
+        for info, label in ((o, "oxford"), (l, "longman"), (c, "cambridge")):
+            if (info.phonetic or "").strip() or (info.audio_url or "").strip() or info.pos_tags:
+                source = label
+                break
+
+    pos_tags: List[str] = []
+    for info in (o, l, c):
+        if info.pos_tags:
+            pos_tags = list(info.pos_tags)
+            break
+
+    return EnglishPronunciationInfo(
+        phonetic=phonetic,
+        audio_url=primary_audio,
+        pos_tags=pos_tags,
+        source=source,
+        audio_fallback_urls=audio_fallbacks,
+    )
+
+
+def should_attach_noun_image(term: str, hint: str, dict_pos_tags: List[str]) -> bool:
+    tags = set(extract_pos_tags(term) + extract_pos_tags(hint) + [t for t in dict_pos_tags if t])
+    return "noun" in tags
+
+
+ABSTRACT_OR_VIRTUAL_KEYWORDS = {
+    "app",
+    "application",
+    "software",
+    "service",
+    "platform",
+    "system",
+    "feature",
+    "tool",
+    "framework",
+    "plugin",
+    "concept",
+    "idea",
+    "method",
+    "strategy",
+    "process",
+    "policy",
+    "rule",
+    "theory",
+    "emotion",
+    "feeling",
+    "quality",
+    "state",
+    "behavior",
+    "behaviour",
+    "mindset",
+    "culture",
+    "language",
+    "ability",
+    "skill",
+    "knowledge",
+    "information",
+    "data",
+    "content",
+    "access",
+    "security",
+    "privacy",
+    "economy",
+    "society",
+    "relationship",
+}
+
+CONCRETE_OBJECT_HINTS = {
+    "fruit",
+    "vegetable",
+    "food",
+    "drink",
+    "animal",
+    "bird",
+    "fish",
+    "insect",
+    "plant",
+    "flower",
+    "tree",
+    "tool",
+    "instrument",
+    "machine",
+    "device",
+    "vehicle",
+    "car",
+    "bus",
+    "train",
+    "bicycle",
+    "boat",
+    "ship",
+    "airplane",
+    "furniture",
+    "chair",
+    "table",
+    "bed",
+    "sofa",
+    "clothing",
+    "shoe",
+    "hat",
+    "bag",
+    "kitchen",
+    "cup",
+    "bottle",
+    "plate",
+    "book",
+    "toy",
+    "ball",
+    "bat",
+    "camera",
+    "phone",
+    "computer",
+}
+
+ABSTRACT_DEFINITION_HINTS = {
+    "idea",
+    "concept",
+    "quality",
+    "state",
+    "process",
+    "system",
+    "method",
+    "ability",
+    "act of",
+    "feeling",
+    "emotion",
+    "condition",
+    "relationship",
+    "behavior",
+    "behaviour",
+    "policy",
+}
+
+
+def _tokenize_alpha(text: str) -> List[str]:
+    return re.findall(r"[a-z]+", (text or "").lower())
+
+
+def is_common_concrete_noun(term: str, hint: str, definition_en: str) -> bool:
+    clean_term = strip_pos_labels_from_term(term).lower()
+    if not clean_term:
+        return False
+
+    tokens = _tokenize_alpha(clean_term)
+    if not tokens:
+        return False
+
+    # Avoid many multiword technical compounds by default (e.g. "app blocker").
+    if len(tokens) >= 3:
+        return False
+
+    term_and_hint_tokens = set(tokens + _tokenize_alpha(hint))
+    definition_low = (definition_en or "").strip().lower()
+
+    # Hard stop for abstract/virtual senses.
+    if term_and_hint_tokens.intersection(ABSTRACT_OR_VIRTUAL_KEYWORDS):
+        return False
+    if any(marker in definition_low for marker in ABSTRACT_DEFINITION_HINTS):
+        return False
+
+    # Positive signals for concrete, visual entities.
+    if term_and_hint_tokens.intersection(CONCRETE_OBJECT_HINTS):
+        return True
+    if any(marker in definition_low for marker in CONCRETE_OBJECT_HINTS):
+        return True
+
+    # Conservative fallback: single-word nouns are often concrete but not always.
+    return len(tokens) == 1 and "-" not in clean_term
+
+
+def _is_plausible_image(path: Path) -> bool:
+    try:
+        if not path.is_file() or path.stat().st_size < 1024:
+            return False
+        with path.open("rb") as f:
+            head = f.read(12)
+        return (
+            head.startswith(b"\xff\xd8\xff")  # JPG
+            or head.startswith(b"\x89PNG\r\n\x1a\n")  # PNG
+            or head.startswith(b"GIF87a")
+            or head.startswith(b"GIF89a")
+            or (len(head) >= 12 and head[:4] == b"RIFF" and head[8:12] == b"WEBP")
+        )
+    except OSError:
+        return False
+
+
+def fetch_wikipedia_image_url(term: str) -> str:
+    clean_term = strip_pos_labels_from_term(term)
+    if not clean_term:
+        return ""
+    api_url = (
+        "https://en.wikipedia.org/w/api.php"
+        f"?action=query&prop=pageimages&format=json&pithumbsize=600&titles={quote(clean_term)}"
+    )
+
+    def _do_request() -> str:
+        resp = requests.get(
+            api_url,
+            timeout=12,
+            headers={"User-Agent": "anki-batch-generator/2.0"},
+        )
+        if not resp.ok:
+            return ""
+        data = resp.json()
+        pages = (((data or {}).get("query") or {}).get("pages") or {})
+        if not isinstance(pages, dict):
+            return ""
+        for page in pages.values():
+            if not isinstance(page, dict):
+                continue
+            thumb = page.get("thumbnail") or {}
+            src = str((thumb or {}).get("source") or "").strip()
+            if src:
+                return src
+        return ""
+
+    try:
+        return str(retry_call(_do_request, retries=2, base_sleep=1.0) or "").strip()
+    except Exception:
+        return ""
+
+
+def ensure_noun_image(media_dir: Path, item: InputItem) -> Optional[AudioAsset]:
+    clean_term = strip_pos_labels_from_term(item.term) or item.term.strip()
+    if not clean_term:
+        return None
+    image_url = fetch_wikipedia_image_url(clean_term)
+    if not image_url:
+        return None
+    ext = ".jpg"
+    low = image_url.lower()
+    if ".png" in low:
+        ext = ".png"
+    elif ".webp" in low:
+        ext = ".webp"
+    elif ".gif" in low:
+        ext = ".gif"
+    filename = f"img_en_{slugify(clean_term)}_{stable_guid(item.mode, item.term)[:8]}{ext}"
+    filepath = media_dir / filename
+    if _is_plausible_image(filepath):
+        return AudioAsset(filename=filename, filepath=filepath)
+
+    def _download() -> bool:
+        resp = requests.get(
+            image_url,
+            timeout=15,
+            stream=True,
+            headers={"User-Agent": "anki-batch-generator/2.0"},
+        )
+        if not resp.ok:
+            return False
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+        with filepath.open("wb") as f:
+            for chunk in resp.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
+        return True
+
+    try:
+        ok = bool(retry_call(_download, retries=2, base_sleep=1.0))
+    except Exception:
+        ok = False
+    if not ok or not _is_plausible_image(filepath):
+        try:
+            filepath.unlink(missing_ok=True)
+        except OSError:
+            pass
+        return None
+    return AudioAsset(filename=filename, filepath=filepath)
 
 
 def build_en_word_prompt() -> str:
@@ -318,9 +821,14 @@ def build_en_word_prompt() -> str:
         "- Avoid complex contexts (war, politics, etc.).\n\n"
 
         "STRUCTURE (semantic intent for each JSON field):\n"
-        "- pronunciation_text: how to say it (IPA-style is fine)\n"
+        "- pronunciation_text: British English (BrE) IPA only, aligned with the user payload below\n"
         "- definition_en: short gloss\n"
         "- example_simple_en: one short natural sentence\n\n"
+
+        "PRONUNCIATION SCOPE:\n"
+        "- Only provide pronunciation_text when `term_for_pronunciation` is a single word.\n"
+        "- If the term is a phrase/multi-word expression (contains spaces), pronunciation_text must be \"\".\n"
+        "- Examples: 'savvy' -> provide IPA; 'app blocker', 'alpha male', 'over the hill' -> \"\".\n\n"
 
         "MINIMAL JSON EXAMPLE (shape only; use your own values):\n"
         '{"pronunciation_text":"/ˌɒp.ə.tjuːˈnɪs.tɪk/",'
@@ -331,9 +839,19 @@ def build_en_word_prompt() -> str:
         "- Output only English.\n"
         "- Do NOT include Chinese unless explicitly required in `hint`.\n\n"
 
+        "PHONETIC SOURCE (user payload `phonetic_source` + `phonetic_hint`):\n"
+        "- `phonetic_source` is which dictionary supplied the BrE IPA (if any): oxford, longman, "
+        "cambridge, or none. (Oxford = Oxford Learner's; Longman = LDOCE; Cambridge = Cambridge.)\n"
+        "- For oxford, longman, or cambridge, `phonetic_hint` is the site’s UK/BrE IPA. Set "
+        "`pronunciation_text` to match `phonetic_hint` (you may add leading/trailing slashes and "
+        "trim spaces; do not substitute US/American IPA).\n"
+        "- When `phonetic_source` is `none` or `phonetic_hint` is empty, output standard BrE-style "
+        "IPA from your own knowledge (e.g. avoid using US-only symbols where BrE would use /ɜː/).\n\n"
+
         "ACCURACY:\n"
-        "- If `phonetic_hint` is provided, treat it as authoritative.\n"
-        "- Use IPA-style pronunciation.\n"
+        "- If `phonetic_hint` is non-empty, it overrides your own guess for `pronunciation_text`.\n"
+        "- If no `phonetic_hint`, output British English (BrE) IPA style.\n"
+        "- Ignore POS labels such as noun/verb/adj in pronunciation.\n"
         "- Choose the most common meaning.\n"
     )
 
@@ -459,12 +977,20 @@ PROMPT_MAP: Dict[str, Callable[[], str]] = {
 }
 
 
-def build_user_payload(item: InputItem, phonetic_hint: str) -> str:
+def build_user_payload(
+    item: InputItem,
+    phonetic_hint: str,
+    term_for_pronunciation: str,
+    phonetic_source: str = "",
+) -> str:
     """Variable inputs only; mode-specific rules live in PROMPT_MAP system prompts."""
     return (
         "Fill the JSON fields described in your system instructions using this input.\n\n"
         f"term: {item.term}\n"
+        f"term_for_pronunciation: {term_for_pronunciation or item.term}\n"
+        f"is_single_word_term: {'true' if is_single_word_term(item.term) else 'false'}\n"
         f"hint: {item.hint or '(none)'}\n"
+        f"phonetic_source: {phonetic_source or 'none'}\n"
         f"phonetic_hint: {phonetic_hint or '(none)'}\n"
     )
 
@@ -474,10 +1000,14 @@ def call_openai_json(
     model: str,
     item: InputItem,
     phonetic_hint: str,
+    term_for_pronunciation: str,
     reasoning_effort: str,
+    phonetic_source: str = "",
 ) -> Dict:
     system_prompt = PROMPT_MAP[item.mode]()
-    user_prompt = build_user_payload(item, phonetic_hint)
+    user_prompt = build_user_payload(
+        item, phonetic_hint, term_for_pronunciation, phonetic_source
+    )
 
     def _call() -> Dict:
         kwargs = {
@@ -572,16 +1102,31 @@ def ensure_english_audio(
     client: OpenAI,
     media_dir: Path,
     item: InputItem,
+    spoken_term: str,
     preferred_external_url: str,
     tts_model: str,
     voice: str,
+    extra_audio_urls: Optional[List[str]] = None,
 ) -> Optional[AudioAsset]:
     filename = f"audio_en_{slugify(item.term)}_{stable_guid(item.mode, item.term)[:8]}.mp3"
     filepath = media_dir / filename
     if _is_plausible_mp3(filepath):
         return AudioAsset(filename=filename, filepath=filepath)
 
-    if maybe_download_external_audio(preferred_external_url, filepath):
+    url_queue: List[str] = []
+    u0 = (preferred_external_url or "").strip()
+    if u0:
+        url_queue.append(_normalize_url(u0))
+    for u in extra_audio_urls or []:
+        u = (u or "").strip()
+        if not u:
+            continue
+        u = _normalize_url(u)
+        if u and u not in url_queue:
+            url_queue.append(u)
+    for url in url_queue:
+        if not maybe_download_external_audio(url, filepath):
+            continue
         if _is_plausible_mp3(filepath):
             return AudioAsset(filename=filename, filepath=filepath)
         try:
@@ -590,7 +1135,7 @@ def ensure_english_audio(
             pass
 
     try:
-        synthesize_tts_to_file(client, tts_model, voice, item.term, filepath)
+        synthesize_tts_to_file(client, tts_model, voice, spoken_term, filepath)
     except Exception:
         # Third-party gateways may not implement TTS; still produce the card without audio.
         return None
@@ -628,7 +1173,13 @@ def ensure_japanese_audio(
     return AudioAsset(filename=filename, filepath=filepath)
 
 
-def build_en_word_card(term: str, llm: Dict, dict_phonetic: str, audio: Optional[AudioAsset]) -> BuiltCard:
+def build_en_word_card(
+    term: str,
+    llm: Dict,
+    dict_phonetic: str,
+    audio: Optional[AudioAsset],
+    image: Optional[AudioAsset],
+) -> BuiltCard:
     ipa = (dict_phonetic or "").strip() or str(llm.get("pronunciation_text") or "").strip()
     if ipa and not ipa.startswith("/"):
         ipa = f"/{ipa.strip('/')}/"
@@ -637,6 +1188,13 @@ def build_en_word_card(term: str, llm: Dict, dict_phonetic: str, audio: Optional
     example_en = str(llm.get("example_simple_en") or "").strip()
 
     sound = f"[sound:{audio.filename}]" if audio else ""
+    image_html = ""
+    if image:
+        image_html = (
+            f'<br><b>Image:</b><br>'
+            f'<img src="{html_escape(image.filename)}" alt="{html_escape(term)}" '
+            'style="max-width:280px; max-height:220px; object-fit:contain;">'
+        )
     # Front: one centered line — <b>word</b> + one ASCII space + IPA (normal weight, not bold).
     ipa_html = html_escape(ipa).strip()
     word_ipa_gap = " "
@@ -658,11 +1216,13 @@ def build_en_word_card(term: str, llm: Dict, dict_phonetic: str, audio: Optional
             f"{sound}<br>"
             f"<b>Definition (EN):</b> {html_escape(definition)}<br>"
             f"<b>Example:</b><br>{html_escape(example_en)}"
+            f"{image_html}"
         )
     else:
         back = (
             f"<b>Definition (EN):</b> {html_escape(definition)}<br>"
             f"<b>Example:</b><br>{html_escape(example_en)}"
+            f"{image_html}"
         )
     return BuiltCard(
         front=front,
@@ -763,6 +1323,22 @@ def build_card(
     cache: CacheStore,
     reasoning_effort: str,
 ) -> Tuple[BuiltCard, List[AudioAsset]]:
+    dict_phonetic = ""
+    dict_phonetic_source = ""
+    dict_audio = ""
+    dict_audio_fallbacks: List[str] = []
+    dict_pos_tags: List[str] = []
+    spoken_term = item.term.strip()
+    if item.mode == "en_word":
+        spoken_term = strip_pos_labels_from_term(item.term) or item.term.strip()
+        if is_single_word_term(item.term):
+            pron_info = fetch_english_pronunciation(spoken_term)
+            dict_phonetic = pron_info.phonetic
+            dict_phonetic_source = (pron_info.source or "").strip()
+            dict_audio = pron_info.audio_url
+            dict_audio_fallbacks = list(pron_info.audio_fallback_urls or [])
+            dict_pos_tags = pron_info.pos_tags
+
     cache_key = hashlib.sha1(
         json.dumps(
             {
@@ -771,16 +1347,13 @@ def build_card(
                 "hint": item.hint,
                 "model": model,
                 "llm_schema": LLM_SCHEMA_VERSION,
+                "dict_phonetic": dict_phonetic,
+                "dict_phonetic_source": dict_phonetic_source,
             },
             ensure_ascii=False,
             sort_keys=True,
         ).encode("utf-8")
     ).hexdigest()
-
-    dict_phonetic = ""
-    dict_audio = ""
-    if item.mode == "en_word":
-        dict_phonetic, dict_audio = fetch_english_phonetic(item.term)
 
     cached = cache.get(cache_key)
     if cached:
@@ -791,23 +1364,39 @@ def build_card(
             model=model,
             item=item,
             phonetic_hint=dict_phonetic,
+            term_for_pronunciation=spoken_term,
             reasoning_effort=reasoning_effort,
+            phonetic_source=dict_phonetic_source,
         )
         cache.set(cache_key, llm)
 
     assets: List[AudioAsset] = []
     if item.mode == "en_word":
-        audio = ensure_english_audio(
-            client=client,
-            media_dir=media_dir,
-            item=item,
-            preferred_external_url=dict_audio,
-            tts_model=tts_model,
-            voice=tts_voice_en,
-        )
+        audio = None
+        if is_single_word_term(item.term):
+            audio = ensure_english_audio(
+                client=client,
+                media_dir=media_dir,
+                item=item,
+                spoken_term=spoken_term,
+                preferred_external_url=dict_audio,
+                tts_model=tts_model,
+                voice=tts_voice_en,
+                extra_audio_urls=dict_audio_fallbacks,
+            )
+        image: Optional[AudioAsset] = None
+        definition_en = str(llm.get("definition_en") or "").strip()
+        if should_attach_noun_image(item.term, item.hint, dict_pos_tags) and is_common_concrete_noun(
+            item.term,
+            item.hint,
+            definition_en,
+        ):
+            image = ensure_noun_image(media_dir=media_dir, item=item)
         if audio:
             assets.append(audio)
-        built = build_en_word_card(item.term, llm, dict_phonetic, audio)
+        if image:
+            assets.append(image)
+        built = build_en_word_card(item.term, llm, dict_phonetic, audio, image)
     elif item.mode == "ja_word":
         audio = ensure_japanese_audio(
             client=client,
@@ -918,7 +1507,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--media-dir", default="anki_media", help="Temporary folder for audio media files.")
     parser.add_argument("--model", default=DEFAULT_TEXT_MODEL, help="OpenAI text model.")
     parser.add_argument("--tts-model", default=DEFAULT_TTS_MODEL, help="OpenAI TTS model.")
-    parser.add_argument("--tts-voice-en", default="alloy", help="English TTS voice.")
+    parser.add_argument(
+        "--tts-voice-en",
+        default="alloy",
+        help="English TTS voice (only if Oxford+Longman+Cambridge UK audio URLs all fail).",
+    )
     parser.add_argument("--tts-voice-ja", default="alloy", help="Japanese TTS voice.")
     parser.add_argument("--reasoning-effort", default="medium", choices=["minimal", "low", "medium", "high"])
     parser.add_argument(
