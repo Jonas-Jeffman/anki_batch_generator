@@ -56,7 +56,7 @@ DEFAULT_TTS_MODEL = "gpt-4o-mini-tts"
 DEFAULT_SLEEP = 2.0
 
 # Bump when LLM JSON schema changes so disk cache does not reuse stale shapes.
-LLM_SCHEMA_VERSION = "no_zh_v3_ox_l_c"
+LLM_SCHEMA_VERSION = "no_zh_v4_en2_no_tts"
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_TERMS_JSON = SCRIPT_DIR / "terms.json"
@@ -331,6 +331,23 @@ def is_single_word_term(term: str) -> bool:
     return len(clean.split()) == 1
 
 
+def lexical_word_count(term: str) -> int:
+    clean = strip_pos_labels_from_term(term)
+    if not clean:
+        return 0
+    return len(clean.split())
+
+
+def is_two_word_term(term: str) -> bool:
+    return lexical_word_count(term) == 2
+
+
+def en_word_uses_dictionary_and_audio(term: str) -> bool:
+    """Single word or exactly two words; longer phrases skip dict scrape and EN audio."""
+    wc = lexical_word_count(term)
+    return wc == 1 or wc == 2
+
+
 def _normalize_url(url: str) -> str:
     u = (url or "").strip()
     if not u:
@@ -543,6 +560,54 @@ def fetch_english_pronunciation(term: str) -> EnglishPronunciationInfo:
         pos_tags=pos_tags,
         source=source,
         audio_fallback_urls=audio_fallbacks,
+    )
+
+
+def _ipa_core(phonetic: str) -> str:
+    return (phonetic or "").strip().strip("/").replace(" ", "")
+
+
+def _combine_two_ipa_fragments(left: str, right: str) -> str:
+    a = _ipa_core(left)
+    b = _ipa_core(right)
+    if a and b:
+        return f"/{a}/ /{b}/"
+    if a:
+        return (left or "").strip() or f"/{a}/"
+    if b:
+        return (right or "").strip() or f"/{b}/"
+    return ""
+
+
+def fetch_english_pronunciation_two_words(term: str) -> EnglishPronunciationInfo:
+    """Phrase-level dictionaries first; if no phrase IPA, concatenate per-word BrE IPA."""
+    clean = strip_pos_labels_from_term(term)
+    parts = clean.split()
+    if len(parts) != 2:
+        return EnglishPronunciationInfo(phonetic="", audio_url="", pos_tags=[])
+
+    phrase = fetch_english_pronunciation(clean)
+    if (phrase.phonetic or "").strip():
+        return phrase
+
+    left = fetch_english_pronunciation(parts[0])
+    right = fetch_english_pronunciation(parts[1])
+    combined_ipa = _combine_two_ipa_fragments(left.phonetic, right.phonetic)
+
+    pos_tags: List[str] = []
+    if phrase.pos_tags:
+        pos_tags = list(phrase.pos_tags)
+    elif left.pos_tags:
+        pos_tags = list(left.pos_tags)
+    elif right.pos_tags:
+        pos_tags = list(right.pos_tags)
+
+    return EnglishPronunciationInfo(
+        phonetic=combined_ipa,
+        audio_url=phrase.audio_url,
+        pos_tags=pos_tags,
+        source="",
+        audio_fallback_urls=list(phrase.audio_fallback_urls or []),
     )
 
 
@@ -826,9 +891,11 @@ def build_en_word_prompt() -> str:
         "- example_simple_en: one short natural sentence\n\n"
 
         "PRONUNCIATION SCOPE:\n"
-        "- Only provide pronunciation_text when `term_for_pronunciation` is a single word.\n"
-        "- If the term is a phrase/multi-word expression (contains spaces), pronunciation_text must be \"\".\n"
-        "- Examples: 'savvy' -> provide IPA; 'app blocker', 'alpha male', 'over the hill' -> \"\".\n\n"
+        "- Only provide pronunciation_text when `lexical_word_count` is 1 or 2 (see user payload).\n"
+        "- For two-word expressions, IPA may be two slash-groups separated by one ASCII space, "
+        "e.g. \"/ˈpleɪ/ /ˈhʊki/\", matching `phonetic_hint` when it is non-empty.\n"
+        "- If `lexical_word_count` is 3 or more, pronunciation_text must be \"\".\n"
+        "- Examples: 'savvy' -> IPA; 'play hooky' -> IPA as above; 'everything in moderation' -> \"\".\n\n"
 
         "MINIMAL JSON EXAMPLE (shape only; use your own values):\n"
         '{"pronunciation_text":"/ˌɒp.ə.tjuːˈnɪs.tɪk/",'
@@ -988,7 +1055,9 @@ def build_user_payload(
         "Fill the JSON fields described in your system instructions using this input.\n\n"
         f"term: {item.term}\n"
         f"term_for_pronunciation: {term_for_pronunciation or item.term}\n"
+        f"lexical_word_count: {lexical_word_count(item.term)}\n"
         f"is_single_word_term: {'true' if is_single_word_term(item.term) else 'false'}\n"
+        f"is_two_word_expression: {'true' if is_two_word_term(item.term) else 'false'}\n"
         f"hint: {item.hint or '(none)'}\n"
         f"phonetic_source: {phonetic_source or 'none'}\n"
         f"phonetic_hint: {phonetic_hint or '(none)'}\n"
@@ -1072,6 +1141,37 @@ def _is_plausible_mp3(path: Path) -> bool:
         return False
 
 
+def _english_external_audio_url_queue(
+    preferred_external_url: str,
+    extra_audio_urls: Optional[List[str]],
+) -> List[str]:
+    url_queue: List[str] = []
+    u0 = (preferred_external_url or "").strip()
+    if u0:
+        url_queue.append(_normalize_url(u0))
+    for u in extra_audio_urls or []:
+        u = (u or "").strip()
+        if not u:
+            continue
+        u = _normalize_url(u)
+        if u and u not in url_queue:
+            url_queue.append(u)
+    return url_queue
+
+
+def _try_download_english_mp3_from_urls(url_queue: List[str], filepath: Path) -> bool:
+    for url in url_queue:
+        if not maybe_download_external_audio(url, filepath):
+            continue
+        if _is_plausible_mp3(filepath):
+            return True
+        try:
+            filepath.unlink(missing_ok=True)
+        except OSError:
+            pass
+    return False
+
+
 def maybe_download_external_audio(audio_url: str, filepath: Path) -> bool:
     if not audio_url:
         return False
@@ -1107,32 +1207,24 @@ def ensure_english_audio(
     tts_model: str,
     voice: str,
     extra_audio_urls: Optional[List[str]] = None,
+    *,
+    disable_tts: bool = False,
+    filename_suffix: str = "",
 ) -> Optional[AudioAsset]:
-    filename = f"audio_en_{slugify(item.term)}_{stable_guid(item.mode, item.term)[:8]}.mp3"
+    safe_suffix = filename_suffix if filename_suffix.startswith("_") else (
+        f"_{filename_suffix}" if filename_suffix else ""
+    )
+    filename = f"audio_en_{slugify(item.term)}_{stable_guid(item.mode, item.term)[:8]}{safe_suffix}.mp3"
     filepath = media_dir / filename
     if _is_plausible_mp3(filepath):
         return AudioAsset(filename=filename, filepath=filepath)
 
-    url_queue: List[str] = []
-    u0 = (preferred_external_url or "").strip()
-    if u0:
-        url_queue.append(_normalize_url(u0))
-    for u in extra_audio_urls or []:
-        u = (u or "").strip()
-        if not u:
-            continue
-        u = _normalize_url(u)
-        if u and u not in url_queue:
-            url_queue.append(u)
-    for url in url_queue:
-        if not maybe_download_external_audio(url, filepath):
-            continue
-        if _is_plausible_mp3(filepath):
-            return AudioAsset(filename=filename, filepath=filepath)
-        try:
-            filepath.unlink(missing_ok=True)
-        except OSError:
-            pass
+    url_queue = _english_external_audio_url_queue(preferred_external_url, extra_audio_urls)
+    if _try_download_english_mp3_from_urls(url_queue, filepath):
+        return AudioAsset(filename=filename, filepath=filepath)
+
+    if disable_tts:
+        return None
 
     try:
         synthesize_tts_to_file(client, tts_model, voice, spoken_term, filepath)
@@ -1177,7 +1269,7 @@ def build_en_word_card(
     term: str,
     llm: Dict,
     dict_phonetic: str,
-    audio: Optional[AudioAsset],
+    audio_assets: List[AudioAsset],
     image: Optional[AudioAsset],
 ) -> BuiltCard:
     ipa = (dict_phonetic or "").strip() or str(llm.get("pronunciation_text") or "").strip()
@@ -1187,7 +1279,7 @@ def build_en_word_card(
     definition = str(llm.get("definition_en") or "").strip()
     example_en = str(llm.get("example_simple_en") or "").strip()
 
-    sound = f"[sound:{audio.filename}]" if audio else ""
+    sound_line = "".join(f"[sound:{a.filename}]" for a in (audio_assets or []))
     image_html = ""
     if image:
         image_html = (
@@ -1211,9 +1303,9 @@ def build_en_word_card(
             "</div>"
         )
     # Put [sound:] on its own line first — some AnkiDroid/WebView builds handle this more reliably.
-    if sound:
+    if sound_line:
         back = (
-            f"{sound}<br>"
+            f"{sound_line}<br>"
             f"<b>Definition (EN):</b> {html_escape(definition)}<br>"
             f"<b>Example:</b><br>{html_escape(example_en)}"
             f"{image_html}"
@@ -1331,8 +1423,11 @@ def build_card(
     spoken_term = item.term.strip()
     if item.mode == "en_word":
         spoken_term = strip_pos_labels_from_term(item.term) or item.term.strip()
-        if is_single_word_term(item.term):
-            pron_info = fetch_english_pronunciation(spoken_term)
+        if en_word_uses_dictionary_and_audio(item.term):
+            if is_two_word_term(item.term):
+                pron_info = fetch_english_pronunciation_two_words(spoken_term)
+            else:
+                pron_info = fetch_english_pronunciation(spoken_term)
             dict_phonetic = pron_info.phonetic
             dict_phonetic_source = (pron_info.source or "").strip()
             dict_audio = pron_info.audio_url
@@ -1372,18 +1467,54 @@ def build_card(
 
     assets: List[AudioAsset] = []
     if item.mode == "en_word":
-        audio = None
-        if is_single_word_term(item.term):
-            audio = ensure_english_audio(
-                client=client,
-                media_dir=media_dir,
-                item=item,
-                spoken_term=spoken_term,
-                preferred_external_url=dict_audio,
-                tts_model=tts_model,
-                voice=tts_voice_en,
-                extra_audio_urls=dict_audio_fallbacks,
-            )
+        audio_assets: List[AudioAsset] = []
+        if en_word_uses_dictionary_and_audio(item.term):
+            if is_two_word_term(item.term):
+                phrase_audio = ensure_english_audio(
+                    client=client,
+                    media_dir=media_dir,
+                    item=item,
+                    spoken_term=spoken_term,
+                    preferred_external_url=dict_audio,
+                    tts_model=tts_model,
+                    voice=tts_voice_en,
+                    extra_audio_urls=dict_audio_fallbacks,
+                    disable_tts=True,
+                )
+                if phrase_audio:
+                    audio_assets = [phrase_audio]
+                else:
+                    parts = spoken_term.split()
+                    if len(parts) == 2:
+                        for idx, w in enumerate(parts, start=1):
+                            wi = fetch_english_pronunciation(w)
+                            one = ensure_english_audio(
+                                client=client,
+                                media_dir=media_dir,
+                                item=item,
+                                spoken_term=w,
+                                preferred_external_url=wi.audio_url,
+                                tts_model=tts_model,
+                                voice=tts_voice_en,
+                                extra_audio_urls=wi.audio_fallback_urls,
+                                disable_tts=True,
+                                filename_suffix=f"_part{idx}",
+                            )
+                            if one:
+                                audio_assets.append(one)
+            else:
+                single = ensure_english_audio(
+                    client=client,
+                    media_dir=media_dir,
+                    item=item,
+                    spoken_term=spoken_term,
+                    preferred_external_url=dict_audio,
+                    tts_model=tts_model,
+                    voice=tts_voice_en,
+                    extra_audio_urls=dict_audio_fallbacks,
+                )
+                if single:
+                    audio_assets = [single]
         image: Optional[AudioAsset] = None
         definition_en = str(llm.get("definition_en") or "").strip()
         if should_attach_noun_image(item.term, item.hint, dict_pos_tags) and is_common_concrete_noun(
@@ -1392,11 +1523,10 @@ def build_card(
             definition_en,
         ):
             image = ensure_noun_image(media_dir=media_dir, item=item)
-        if audio:
-            assets.append(audio)
+        assets.extend(audio_assets)
         if image:
             assets.append(image)
-        built = build_en_word_card(item.term, llm, dict_phonetic, audio, image)
+        built = build_en_word_card(item.term, llm, dict_phonetic, audio_assets, image)
     elif item.mode == "ja_word":
         audio = ensure_japanese_audio(
             client=client,
@@ -1510,7 +1640,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--tts-voice-en",
         default="alloy",
-        help="English TTS voice (only if Oxford+Longman+Cambridge UK audio URLs all fail).",
+        help=(
+            "English TTS voice for single-word cards only when all UK dictionary MP3 URLs fail. "
+            "Two-word expressions never use TTS (phrase or per-word UK clips only)."
+        ),
     )
     parser.add_argument("--tts-voice-ja", default="alloy", help="Japanese TTS voice.")
     parser.add_argument("--reasoning-effort", default="medium", choices=["minimal", "low", "medium", "high"])
