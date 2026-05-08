@@ -47,6 +47,84 @@ pip install -r requirements.txt
 
 ---
 
+## 快速运行示例
+
+下面示例假设你已经在项目目录中，并且 `terms.json` 已放在 `anki_batch_generator.py` 同目录。
+
+### Windows CMD
+
+安装依赖：
+
+```bat
+py -3 -m venv .venv
+.venv\Scripts\activate.bat
+python -m pip install -U pip
+pip install -r requirements.txt
+```
+
+设置 `OPENAI_API_KEY`：
+
+```bat
+set OPENAI_API_KEY=sk-...
+```
+
+运行主脚本：
+
+```bat
+python anki_batch_generator.py ^
+  --mode en_word ^
+  --deck-name "English::Daily" ^
+  --model gpt-4o-mini
+```
+
+如需使用兼容网关：
+
+```bat
+set OPENAI_BASE_URL=https://api.chatanywhere.tech
+python anki_batch_generator.py ^
+  --mode en_word ^
+  --deck-name "English::Daily" ^
+  --openai-base-url "%OPENAI_BASE_URL%"
+```
+
+### Linux Bash
+
+安装依赖：
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -U pip
+pip install -r requirements.txt
+```
+
+设置 `OPENAI_API_KEY`：
+
+```bash
+export OPENAI_API_KEY="sk-..."
+```
+
+运行主脚本：
+
+```bash
+python anki_batch_generator.py \
+  --mode en_word \
+  --deck-name "English::Daily" \
+  --model gpt-4o-mini
+```
+
+如需使用兼容网关：
+
+```bash
+export OPENAI_BASE_URL="https://api.chatanywhere.tech"
+python anki_batch_generator.py \
+  --mode en_word \
+  --deck-name "English::Daily" \
+  --openai-base-url "$OPENAI_BASE_URL"
+```
+
+---
+
 ## 配置 API Key（三选一）
 
 **不要**把 Key 写进仓库或提交到 Git。
