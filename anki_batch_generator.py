@@ -1483,25 +1483,6 @@ def build_card(
                 )
                 if phrase_audio:
                     audio_assets = [phrase_audio]
-                else:
-                    parts = spoken_term.split()
-                    if len(parts) == 2:
-                        for idx, w in enumerate(parts, start=1):
-                            wi = fetch_english_pronunciation(w)
-                            one = ensure_english_audio(
-                                client=client,
-                                media_dir=media_dir,
-                                item=item,
-                                spoken_term=w,
-                                preferred_external_url=wi.audio_url,
-                                tts_model=tts_model,
-                                voice=tts_voice_en,
-                                extra_audio_urls=wi.audio_fallback_urls,
-                                disable_tts=True,
-                                filename_suffix=f"_part{idx}",
-                            )
-                            if one:
-                                audio_assets.append(one)
             else:
                 single = ensure_english_audio(
                     client=client,
