@@ -342,8 +342,8 @@ def is_two_word_term(term: str) -> bool:
     return lexical_word_count(term) == 2
 
 
-def en_word_uses_dictionary_and_audio(term: str) -> bool:
-    """Single word or exactly two words; longer phrases skip dict scrape and EN audio."""
+def en_word_uses_dictionary_lookup(term: str) -> bool:
+    """Single word or exactly two words; longer phrases skip dict scrape. EN audio is single-word only."""
     wc = lexical_word_count(term)
     return wc == 1 or wc == 2
 
@@ -580,7 +580,7 @@ def _combine_two_ipa_fragments(left: str, right: str) -> str:
 
 
 def fetch_english_pronunciation_two_words(term: str) -> EnglishPronunciationInfo:
-    """Phrase-level dictionaries first; if no phrase IPA, concatenate per-word BrE IPA."""
+    """Phrase-level IPA from dictionaries; if missing, concatenate per-word BrE IPA. No audio."""
     clean = strip_pos_labels_from_term(term)
     parts = clean.split()
     if len(parts) != 2:
@@ -588,7 +588,12 @@ def fetch_english_pronunciation_two_words(term: str) -> EnglishPronunciationInfo
 
     phrase = fetch_english_pronunciation(clean)
     if (phrase.phonetic or "").strip():
-        return phrase
+        return EnglishPronunciationInfo(
+            phonetic=phrase.phonetic,
+            audio_url="",
+            pos_tags=list(phrase.pos_tags),
+            source=phrase.source,
+        )
 
     left = fetch_english_pronunciation(parts[0])
     right = fetch_english_pronunciation(parts[1])
@@ -604,10 +609,9 @@ def fetch_english_pronunciation_two_words(term: str) -> EnglishPronunciationInfo
 
     return EnglishPronunciationInfo(
         phonetic=combined_ipa,
-        audio_url=phrase.audio_url,
+        audio_url="",
         pos_tags=pos_tags,
         source="",
-        audio_fallback_urls=list(phrase.audio_fallback_urls or []),
     )
 
 
@@ -1208,7 +1212,6 @@ def ensure_english_audio(
     voice: str,
     extra_audio_urls: Optional[List[str]] = None,
     *,
-    disable_tts: bool = False,
     filename_suffix: str = "",
 ) -> Optional[AudioAsset]:
     safe_suffix = filename_suffix if filename_suffix.startswith("_") else (
@@ -1222,9 +1225,6 @@ def ensure_english_audio(
     url_queue = _english_external_audio_url_queue(preferred_external_url, extra_audio_urls)
     if _try_download_english_mp3_from_urls(url_queue, filepath):
         return AudioAsset(filename=filename, filepath=filepath)
-
-    if disable_tts:
-        return None
 
     try:
         synthesize_tts_to_file(client, tts_model, voice, spoken_term, filepath)
@@ -1423,7 +1423,7 @@ def build_card(
     spoken_term = item.term.strip()
     if item.mode == "en_word":
         spoken_term = strip_pos_labels_from_term(item.term) or item.term.strip()
-        if en_word_uses_dictionary_and_audio(item.term):
+        if en_word_uses_dictionary_lookup(item.term):
             if is_two_word_term(item.term):
                 pron_info = fetch_english_pronunciation_two_words(spoken_term)
             else:
@@ -1468,34 +1468,19 @@ def build_card(
     assets: List[AudioAsset] = []
     if item.mode == "en_word":
         audio_assets: List[AudioAsset] = []
-        if en_word_uses_dictionary_and_audio(item.term):
-            if is_two_word_term(item.term):
-                phrase_audio = ensure_english_audio(
-                    client=client,
-                    media_dir=media_dir,
-                    item=item,
-                    spoken_term=spoken_term,
-                    preferred_external_url=dict_audio,
-                    tts_model=tts_model,
-                    voice=tts_voice_en,
-                    extra_audio_urls=dict_audio_fallbacks,
-                    disable_tts=True,
-                )
-                if phrase_audio:
-                    audio_assets = [phrase_audio]
-            else:
-                single = ensure_english_audio(
-                    client=client,
-                    media_dir=media_dir,
-                    item=item,
-                    spoken_term=spoken_term,
-                    preferred_external_url=dict_audio,
-                    tts_model=tts_model,
-                    voice=tts_voice_en,
-                    extra_audio_urls=dict_audio_fallbacks,
-                )
-                if single:
-                    audio_assets = [single]
+        if is_single_word_term(item.term):
+            single = ensure_english_audio(
+                client=client,
+                media_dir=media_dir,
+                item=item,
+                spoken_term=spoken_term,
+                preferred_external_url=dict_audio,
+                tts_model=tts_model,
+                voice=tts_voice_en,
+                extra_audio_urls=dict_audio_fallbacks,
+            )
+            if single:
+                audio_assets = [single]
         image: Optional[AudioAsset] = None
         definition_en = str(llm.get("definition_en") or "").strip()
         if should_attach_noun_image(item.term, item.hint, dict_pos_tags) and is_common_concrete_noun(
@@ -1621,10 +1606,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--tts-voice-en",
         default="alloy",
-        help=(
-            "English TTS voice for single-word cards only when all UK dictionary MP3 URLs fail. "
-            "Two-word expressions never use TTS (phrase or per-word UK clips only)."
-        ),
+        help="English TTS voice for single-word cards when all UK dictionary MP3 URLs fail.",
     )
     parser.add_argument("--tts-voice-ja", default="alloy", help="Japanese TTS voice.")
     parser.add_argument("--reasoning-effort", default="medium", choices=["minimal", "low", "medium", "high"])
