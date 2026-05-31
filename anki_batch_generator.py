@@ -44,7 +44,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Dict, Iterable, List, Optional, Tuple
-from urllib.parse import quote
+from urllib.parse import quote, unquote, urlparse
 
 import genanki
 import requests
@@ -56,7 +56,7 @@ DEFAULT_TTS_MODEL = "gpt-4o-mini-tts"
 DEFAULT_SLEEP = 2.0
 
 # Bump when LLM JSON schema changes so disk cache does not reuse stale shapes.
-LLM_SCHEMA_VERSION = "no_zh_v4_en2_no_tts"
+LLM_SCHEMA_VERSION = "no_zh_v5_safe_ipa"
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_TERMS_JSON = SCRIPT_DIR / "terms.json"
@@ -363,6 +363,96 @@ def _strip_tags(text: str) -> str:
     return re.sub(r"<[^>]+>", "", text or "").strip()
 
 
+def _dictionary_slug(term: str) -> str:
+    clean = strip_pos_labels_from_term(term)
+    return clean.strip().replace(" ", "-").lower()
+
+
+def _normalize_headword(text: str) -> str:
+    s = html.unescape(text or "").replace("\u00a0", " ")
+    s = re.sub(r"\s+", " ", s.lower().strip())
+    return s
+
+
+def _headword_matches_term(headword: str, term: str) -> bool:
+    query = _normalize_headword(strip_pos_labels_from_term(term))
+    found = _normalize_headword(headword)
+    if not query or not found:
+        return False
+    query_variants = {query, query.replace("-", " "), query.replace(" ", "")}
+    found_variants = {found, found.replace("-", " "), found.replace(" ", "")}
+    if query_variants & found_variants:
+        return True
+    return query.replace(" ", "-") == found.replace(" ", "-")
+
+
+def _cambridge_final_url_matches_term(final_url: str, term: str) -> bool:
+    slug = _dictionary_slug(term)
+    path = unquote(urlparse(final_url).path.rstrip("/")).lower()
+    return path.endswith(f"/english/{slug}")
+
+
+def _extract_cambridge_entry_scope(body: str, term: str) -> str:
+    clean = strip_pos_labels_from_term(term)
+    if not clean:
+        return ""
+
+    for block_match in re.finditer(
+        r'<div class="idiom-block">(.*?)(?=</div>\s*<div class="idiom-block"|</div>\s*<div class="plus-other-dict")',
+        body,
+        flags=re.IGNORECASE | re.DOTALL,
+    ):
+        block = block_match.group(1)
+        hw_match = re.search(
+            r'<h2[^>]*class="[^"]*\b(?:headword|dhw)\b[^"]*"[^>]*>(.*?)</h2>',
+            block,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        if hw_match and _headword_matches_term(
+            _strip_tags(html.unescape(hw_match.group(1))), clean
+        ):
+            return block
+
+    for header_match in re.finditer(
+        r'<div class="[^"]*\bpos-header\b[^"]*"[^>]*>',
+        body,
+        flags=re.IGNORECASE,
+    ):
+        start = header_match.start()
+        next_header = re.search(
+            r'<div class="[^"]*\bpos-header\b[^"]*"[^>]*>',
+            body[start + 20:],
+            flags=re.IGNORECASE,
+        )
+        end = start + 20 + next_header.start() if next_header else start + 12000
+        block = body[start:end]
+        hw_match = re.search(
+            r'<span class="hw dhw[^"]*">(.*?)</span>',
+            block,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        if hw_match and _headword_matches_term(
+            _strip_tags(html.unescape(hw_match.group(1))), clean
+        ):
+            return block
+
+    return ""
+
+
+def _oxford_page_is_misspelling(body: str) -> bool:
+    title = re.search(r"<title>([^<]+)</title>", body, flags=re.IGNORECASE)
+    return bool(title and "did you spell" in title.group(1).lower())
+
+
+def _extract_oxford_headword(body: str) -> str:
+    match = re.search(
+        r'<h1[^>]*\bclass="[^"]*\bheadword\b[^"]*"[^>]*>(.*?)</h1>',
+        body,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    return _strip_tags(html.unescape(match.group(1))) if match else ""
+
+
 def fetch_english_from_oxford(term: str) -> EnglishPronunciationInfo:
     """Oxford Advanced Learner's: UK/BrE block (phons_br, uk_pron / __gb_)."""
     normalized = term.strip().replace(" ", "-")
@@ -379,6 +469,11 @@ def fetch_english_from_oxford(term: str) -> EnglishPronunciationInfo:
         if not resp.ok:
             return EnglishPronunciationInfo(phonetic="", audio_url="", pos_tags=[])
         body = resp.text
+        if _oxford_page_is_misspelling(body):
+            return EnglishPronunciationInfo(phonetic="", audio_url="", pos_tags=[])
+        headword = _extract_oxford_headword(body)
+        if headword and not _headword_matches_term(headword, term):
+            return EnglishPronunciationInfo(phonetic="", audio_url="", pos_tags=[])
         pos_tags = list(
             dict.fromkeys(
                 normalize_pos_tag(p)
@@ -440,23 +535,37 @@ def fetch_english_from_cambridge(term: str) -> EnglishPronunciationInfo:
         )
         if not resp.ok:
             return EnglishPronunciationInfo(phonetic="", audio_url="", pos_tags=[])
+        if not _cambridge_final_url_matches_term(resp.url, term):
+            return EnglishPronunciationInfo(phonetic="", audio_url="", pos_tags=[])
         body = resp.text
-        pos_tags = list(dict.fromkeys(normalize_pos_tag(p) for p in re.findall(r'class="pos dpos"[^>]*>([^<]+)<', body, flags=re.IGNORECASE)))
+        entry_scope = _extract_cambridge_entry_scope(body, term)
+        if not entry_scope:
+            return EnglishPronunciationInfo(phonetic="", audio_url="", pos_tags=[])
+        pos_tags = list(dict.fromkeys(normalize_pos_tag(p) for p in re.findall(r'class="pos dpos"[^>]*>([^<]+)<', entry_scope, flags=re.IGNORECASE)))
         pos_tags = [p for p in pos_tags if p]
 
-        uk_block = re.search(r'(<span[^>]*class="[^"]*\buk dpron-i\b[^"]*"[^>]*>.*?</span>)', body, flags=re.IGNORECASE | re.DOTALL)
-        scope = uk_block.group(1) if uk_block else body
         ipa = ""
-        ipa_match = re.search(r'class="[^"]*\bipa\b[^"]*"[^>]*>(.*?)<', scope, flags=re.IGNORECASE | re.DOTALL)
-        if ipa_match:
-            ipa = _strip_tags(html.unescape(ipa_match.group(1))).replace(" ", "")
+        uk_block = re.search(
+            r'(<span[^>]*class="[^"]*\buk dpron-i\b[^"]*"[^>]*>.*?</span>)',
+            entry_scope,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        if uk_block:
+            ipa_match = re.search(
+                r'class="[^"]*\bipa\b[^"]*"[^>]*>(.*?)<',
+                uk_block.group(1),
+                flags=re.IGNORECASE | re.DOTALL,
+            )
+            if ipa_match:
+                ipa = _strip_tags(html.unescape(ipa_match.group(1))).replace(" ", "")
 
         audio = ""
-        audio_match = re.search(r'(?:data-src-mp3|src)="([^"]+)"', scope, flags=re.IGNORECASE)
-        if audio_match:
-            audio = _normalize_url(html.unescape(audio_match.group(1)))
+        if uk_block:
+            audio_match = re.search(r'(?:data-src-mp3|src)="([^"]+)"', uk_block.group(1), flags=re.IGNORECASE)
+            if audio_match:
+                audio = _normalize_url(html.unescape(audio_match.group(1)))
         if not audio:
-            for candidate in re.findall(r'(?:data-src-mp3|src)="([^"]+)"', body, flags=re.IGNORECASE):
+            for candidate in re.findall(r'(?:data-src-mp3|src)="([^"]+)"', entry_scope, flags=re.IGNORECASE):
                 low = candidate.lower()
                 if "/uk_" in low or "_uk_" in low or "uk_pron" in low:
                     audio = _normalize_url(html.unescape(candidate))
@@ -485,7 +594,13 @@ def fetch_english_from_longman(term: str) -> EnglishPronunciationInfo:
         )
         if not resp.ok:
             return EnglishPronunciationInfo(phonetic="", audio_url="", pos_tags=[])
+        if "/spellcheck/" in (resp.url or "").lower():
+            return EnglishPronunciationInfo(phonetic="", audio_url="", pos_tags=[])
         body = resp.text
+        headword_match = re.search(r"<h1[^>]*>([^<]+)</h1>", body, flags=re.IGNORECASE)
+        headword = _strip_tags(html.unescape(headword_match.group(1))) if headword_match else ""
+        if not headword or not _headword_matches_term(headword, term):
+            return EnglishPronunciationInfo(phonetic="", audio_url="", pos_tags=[])
         pos_tags = list(dict.fromkeys(normalize_pos_tag(p) for p in re.findall(r'class="POS"[^>]*>([^<]+)<', body, flags=re.IGNORECASE)))
         pos_tags = [p for p in pos_tags if p]
 
@@ -563,55 +678,22 @@ def fetch_english_pronunciation(term: str) -> EnglishPronunciationInfo:
     )
 
 
-def _ipa_core(phonetic: str) -> str:
-    return (phonetic or "").strip().strip("/").replace(" ", "")
-
-
-def _combine_two_ipa_fragments(left: str, right: str) -> str:
-    a = _ipa_core(left)
-    b = _ipa_core(right)
-    if a and b:
-        return f"/{a}/ /{b}/"
-    if a:
-        return (left or "").strip() or f"/{a}/"
-    if b:
-        return (right or "").strip() or f"/{b}/"
-    return ""
-
-
 def fetch_english_pronunciation_two_words(term: str) -> EnglishPronunciationInfo:
-    """Phrase-level IPA from dictionaries; if missing, concatenate per-word BrE IPA. No audio."""
+    """Verified phrase-level BrE IPA only. No audio, no per-word guesses."""
     clean = strip_pos_labels_from_term(term)
-    parts = clean.split()
-    if len(parts) != 2:
+    if len(clean.split()) != 2:
         return EnglishPronunciationInfo(phonetic="", audio_url="", pos_tags=[])
 
     phrase = fetch_english_pronunciation(clean)
-    if (phrase.phonetic or "").strip():
-        return EnglishPronunciationInfo(
-            phonetic=phrase.phonetic,
-            audio_url="",
-            pos_tags=list(phrase.pos_tags),
-            source=phrase.source,
-        )
-
-    left = fetch_english_pronunciation(parts[0])
-    right = fetch_english_pronunciation(parts[1])
-    combined_ipa = _combine_two_ipa_fragments(left.phonetic, right.phonetic)
-
-    pos_tags: List[str] = []
-    if phrase.pos_tags:
-        pos_tags = list(phrase.pos_tags)
-    elif left.pos_tags:
-        pos_tags = list(left.pos_tags)
-    elif right.pos_tags:
-        pos_tags = list(right.pos_tags)
+    phonetic = (phrase.phonetic or "").strip()
+    if not phonetic:
+        return EnglishPronunciationInfo(phonetic="", audio_url="", pos_tags=[])
 
     return EnglishPronunciationInfo(
-        phonetic=combined_ipa,
+        phonetic=phonetic,
         audio_url="",
-        pos_tags=pos_tags,
-        source="",
+        pos_tags=list(phrase.pos_tags),
+        source=phrase.source,
     )
 
 
@@ -895,11 +977,9 @@ def build_en_word_prompt() -> str:
         "- example_simple_en: one short natural sentence\n\n"
 
         "PRONUNCIATION SCOPE:\n"
-        "- Only provide pronunciation_text when `lexical_word_count` is 1 or 2 (see user payload).\n"
-        "- For two-word expressions, IPA may be two slash-groups separated by one ASCII space, "
-        "e.g. \"/ˈpleɪ/ /ˈhʊki/\", matching `phonetic_hint` when it is non-empty.\n"
-        "- If `lexical_word_count` is 3 or more, pronunciation_text must be \"\".\n"
-        "- Examples: 'savvy' -> IPA; 'play hooky' -> IPA as above; 'everything in moderation' -> \"\".\n\n"
+        "- Only provide pronunciation_text when `lexical_word_count` is 1 (see user payload).\n"
+        "- If `lexical_word_count` is 2 or more, pronunciation_text must be \"\".\n"
+        "- Examples: 'savvy' -> IPA; 'play hooky' -> \"\"; 'everything in moderation' -> \"\".\n\n"
 
         "MINIMAL JSON EXAMPLE (shape only; use your own values):\n"
         '{"pronunciation_text":"/ˌɒp.ə.tjuːˈnɪs.tɪk/",'
@@ -917,10 +997,13 @@ def build_en_word_prompt() -> str:
         "`pronunciation_text` to match `phonetic_hint` (you may add leading/trailing slashes and "
         "trim spaces; do not substitute US/American IPA).\n"
         "- When `phonetic_source` is `none` or `phonetic_hint` is empty, output standard BrE-style "
-        "IPA from your own knowledge (e.g. avoid using US-only symbols where BrE would use /ɜː/).\n\n"
+        "IPA from your own knowledge only for single-word terms (`lexical_word_count` is 1). "
+        "For multi-word terms, pronunciation_text must be \"\".\n\n"
 
         "ACCURACY:\n"
-        "- If `phonetic_hint` is non-empty, it overrides your own guess for `pronunciation_text`.\n"
+        "- If `phonetic_hint` is non-empty and `lexical_word_count` is 1, it overrides your own "
+        "guess for `pronunciation_text`.\n"
+        "- Never invent or copy IPA for multi-word terms.\n"
         "- If no `phonetic_hint`, output British English (BrE) IPA style.\n"
         "- Ignore POS labels such as noun/verb/adj in pronunciation.\n"
         "- Choose the most common meaning.\n"
@@ -1272,7 +1355,10 @@ def build_en_word_card(
     audio_assets: List[AudioAsset],
     image: Optional[AudioAsset],
 ) -> BuiltCard:
-    ipa = (dict_phonetic or "").strip() or str(llm.get("pronunciation_text") or "").strip()
+    if is_two_word_term(term) or lexical_word_count(term) >= 3:
+        ipa = (dict_phonetic or "").strip()
+    else:
+        ipa = (dict_phonetic or "").strip() or str(llm.get("pronunciation_text") or "").strip()
     if ipa and not ipa.startswith("/"):
         ipa = f"/{ipa.strip('/')}/"
 
