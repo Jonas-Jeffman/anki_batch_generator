@@ -44,7 +44,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Dict, Iterable, List, Optional, Tuple
-from urllib.parse import quote, unquote, urlparse
+from urllib.parse import quote, unquote, urljoin, urlparse
 
 import genanki
 import requests
@@ -863,6 +863,227 @@ def _is_plausible_image(path: Path) -> bool:
         return False
 
 
+IMAGE_IGNORE_KEYWORDS = {
+    "1x1",
+    "ad-banner",
+    "ad_banner",
+    "adserver",
+    "analytics",
+    "advert",
+    "advertisement",
+    "beacon",
+    "blank",
+    "banner-ad",
+    "banner_ad",
+    "doubleclick",
+    "favicon",
+    "googlesyndication",
+    "icon-close",
+    "lazy",
+    "loader",
+    "loading",
+    "logo",
+    "pixel",
+    "placeholder",
+    "spacer",
+    "sprite",
+    "transparent",
+    "tracker",
+    "tracking",
+    "trackpixel",
+}
+
+
+def _normalize_image_url(url: str, page_url: str) -> str:
+    u = html.unescape((url or "").strip().strip("'\""))
+    if not u:
+        return ""
+    if u.startswith("//"):
+        return f"https:{u}"
+    return urljoin(page_url, u)
+
+
+def _is_candidate_dictionary_image_url(url: str) -> bool:
+    u = (url or "").strip()
+    if not u:
+        return False
+    low = u.lower()
+    if low.startswith("data:") or "base64" in low or "svg" in low:
+        return False
+    parsed = urlparse(u)
+    if parsed.scheme not in {"http", "https"}:
+        return False
+    host = (parsed.netloc or "").lower()
+    path = unquote(parsed.path or "").lower()
+    filename = Path(path).name
+    stem = filename.rsplit(".", 1)[0]
+    if not re.search(r"\.(?:jpe?g|png|webp|gif)$", path):
+        return False
+    if any(keyword in host or keyword in path for keyword in IMAGE_IGNORE_KEYWORDS):
+        return False
+    if stem in {"ad", "ads", "close", "favicon", "icon", "logo", "pixel", "sprite"}:
+        return False
+    return True
+
+
+def _extract_image_urls_from_html(body: str, page_url: str) -> List[str]:
+    candidates: List[str] = []
+
+    for img_match in re.finditer(r"<img\b[^>]*>", body or "", flags=re.IGNORECASE | re.DOTALL):
+        tag = img_match.group(0)
+        for attr in ("data-src", "data-original", "data-lazy-src", "src"):
+            attr_match = re.search(
+                rf'\b{attr}\s*=\s*["\']([^"\']+)["\']',
+                tag,
+                flags=re.IGNORECASE,
+            )
+            if attr_match:
+                candidates.append(attr_match.group(1))
+        for attr in ("data-srcset", "srcset"):
+            srcset_match = re.search(
+                rf'\b{attr}\s*=\s*["\']([^"\']+)["\']',
+                tag,
+                flags=re.IGNORECASE,
+            )
+            if not srcset_match:
+                continue
+            for part in srcset_match.group(1).split(","):
+                src = part.strip().split(" ")[0]
+                if src:
+                    candidates.append(src)
+
+    for url_match in re.finditer(
+        r'https?://[^"\'<>\s]+\.(?:jpe?g|png|webp|gif)(?:\?[^"\'<>\s]*)?',
+        body or "",
+        flags=re.IGNORECASE,
+    ):
+        candidates.append(url_match.group(0))
+    for path_match in re.finditer(
+        r'["\']((?:/[^"\'<>\s]+)?/(?:images|media)/[^"\'<>\s]+\.(?:jpe?g|png|webp|gif)(?:\?[^"\']*)?)["\']',
+        body or "",
+        flags=re.IGNORECASE,
+    ):
+        candidates.append(path_match.group(1))
+
+    seen = set()
+    urls: List[str] = []
+    for raw in candidates:
+        url = _normalize_image_url(raw, page_url)
+        if not _is_candidate_dictionary_image_url(url) or url in seen:
+            continue
+        seen.add(url)
+        urls.append(url)
+    return urls
+
+
+def _choose_image_url(candidates: List[str], preferred_markers: List[str]) -> str:
+    if not candidates:
+        return ""
+    for marker in preferred_markers:
+        for url in candidates:
+            if marker in url.lower():
+                return url
+    return candidates[0]
+
+
+def fetch_cambridge_image_url(term: str) -> str:
+    clean_term = strip_pos_labels_from_term(term)
+    if not clean_term:
+        return ""
+    normalized = clean_term.strip().replace(" ", "-")
+    url = f"https://dictionary.cambridge.org/dictionary/english/{quote(normalized)}"
+
+    def _do_request() -> str:
+        resp = requests.get(
+            url,
+            timeout=12,
+            headers={"User-Agent": "anki-batch-generator/2.0"},
+        )
+        if not resp.ok or not _cambridge_final_url_matches_term(resp.url, clean_term):
+            return ""
+        body = resp.text
+        entry_scope = _extract_cambridge_entry_scope(body, clean_term) or body
+        candidates = _extract_image_urls_from_html(entry_scope, resp.url)
+        return _choose_image_url(candidates, ["/images/full/", "/images/thumb/", "/images/"])
+
+    try:
+        return str(retry_call(_do_request, retries=2, base_sleep=1.0) or "").strip()
+    except Exception:
+        return ""
+
+
+def fetch_longman_image_url(term: str) -> str:
+    clean_term = strip_pos_labels_from_term(term)
+    if not clean_term:
+        return ""
+    normalized = clean_term.strip().replace(" ", "-")
+    url = f"https://www.ldoceonline.com/dictionary/{quote(normalized)}"
+
+    def _do_request() -> str:
+        resp = requests.get(
+            url,
+            timeout=12,
+            headers={"User-Agent": "anki-batch-generator/2.0"},
+        )
+        if not resp.ok or "/spellcheck/" in (resp.url or "").lower():
+            return ""
+        body = resp.text
+        headword_match = re.search(r"<h1[^>]*>([^<]+)</h1>", body, flags=re.IGNORECASE)
+        headword = _strip_tags(html.unescape(headword_match.group(1))) if headword_match else ""
+        if not headword or not _headword_matches_term(headword, clean_term):
+            return ""
+        candidates = _extract_image_urls_from_html(body, resp.url)
+        return _choose_image_url(candidates, ["/media/english/illustration/", "/illustration/"])
+
+    try:
+        return str(retry_call(_do_request, retries=2, base_sleep=1.0) or "").strip()
+    except Exception:
+        return ""
+
+
+def fetch_oxford_image_url(term: str) -> str:
+    clean_term = strip_pos_labels_from_term(term)
+    if not clean_term:
+        return ""
+    normalized = clean_term.strip().replace(" ", "-")
+    url = f"https://www.oxfordlearnersdictionaries.com/definition/english/{quote(normalized)}"
+
+    def _do_request() -> str:
+        resp = requests.get(
+            url,
+            timeout=12,
+            headers={"User-Agent": "anki-batch-generator/2.0"},
+        )
+        if not resp.ok:
+            return ""
+        body = resp.text
+        if _oxford_page_is_misspelling(body):
+            return ""
+        headword = _extract_oxford_headword(body)
+        if headword and not _headword_matches_term(headword, clean_term):
+            return ""
+        candidates = _extract_image_urls_from_html(body, resp.url)
+        return _choose_image_url(candidates, ["/media/english/fullsize/", "/fullsize/", "/media/english/"])
+
+    try:
+        return str(retry_call(_do_request, retries=2, base_sleep=1.0) or "").strip()
+    except Exception:
+        return ""
+
+
+def fetch_dictionary_image_url(term: str) -> str:
+    for fetcher in (
+        fetch_cambridge_image_url,
+        fetch_longman_image_url,
+        fetch_oxford_image_url,
+        fetch_wikipedia_image_url,
+    ):
+        image_url = fetcher(term)
+        if image_url:
+            return image_url
+    return ""
+
+
 def fetch_wikipedia_image_url(term: str) -> str:
     clean_term = strip_pos_labels_from_term(term)
     if not clean_term:
@@ -903,7 +1124,7 @@ def ensure_noun_image(media_dir: Path, item: InputItem) -> Optional[AudioAsset]:
     clean_term = strip_pos_labels_from_term(item.term) or item.term.strip()
     if not clean_term:
         return None
-    image_url = fetch_wikipedia_image_url(clean_term)
+    image_url = fetch_dictionary_image_url(clean_term)
     if not image_url:
         return None
     ext = ".jpg"
