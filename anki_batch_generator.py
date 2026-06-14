@@ -855,8 +855,6 @@ def _is_plausible_image(path: Path) -> bool:
         return (
             head.startswith(b"\xff\xd8\xff")  # JPG
             or head.startswith(b"\x89PNG\r\n\x1a\n")  # PNG
-            or head.startswith(b"GIF87a")
-            or head.startswith(b"GIF89a")
             or (len(head) >= 12 and head[:4] == b"RIFF" and head[8:12] == b"WEBP")
         )
     except OSError:
@@ -877,6 +875,7 @@ IMAGE_IGNORE_KEYWORDS = {
     "banner_ad",
     "doubleclick",
     "favicon",
+    "icon",
     "googlesyndication",
     "icon-close",
     "lazy",
@@ -891,6 +890,12 @@ IMAGE_IGNORE_KEYWORDS = {
     "tracker",
     "tracking",
     "trackpixel",
+}
+
+DICTIONARY_IMAGE_RULES = {
+    "dictionary.cambridge.org": ("/images/full/", "/images/thumb/"),
+    "www.ldoceonline.com": ("/media/english/illustration/",),
+    "www.oxfordlearnersdictionaries.com": ("/media/english/fullsize/",),
 }
 
 
@@ -908,7 +913,7 @@ def _is_candidate_dictionary_image_url(url: str) -> bool:
     if not u:
         return False
     low = u.lower()
-    if low.startswith("data:") or "base64" in low or "svg" in low:
+    if low.startswith("data:") or low.startswith("data:image") or "base64" in low or "svg" in low:
         return False
     parsed = urlparse(u)
     if parsed.scheme not in {"http", "https"}:
@@ -917,11 +922,16 @@ def _is_candidate_dictionary_image_url(url: str) -> bool:
     path = unquote(parsed.path or "").lower()
     filename = Path(path).name
     stem = filename.rsplit(".", 1)[0]
-    if not re.search(r"\.(?:jpe?g|png|webp|gif)$", path):
+    if not re.search(r"\.(?:jpe?g|png|webp)$", path):
         return False
     if any(keyword in host or keyword in path for keyword in IMAGE_IGNORE_KEYWORDS):
         return False
     if stem in {"ad", "ads", "close", "favicon", "icon", "logo", "pixel", "sprite"}:
+        return False
+    allowed_prefixes = DICTIONARY_IMAGE_RULES.get(host)
+    if not allowed_prefixes:
+        return False
+    if not any(path.startswith(prefix) for prefix in allowed_prefixes):
         return False
     return True
 
@@ -953,13 +963,13 @@ def _extract_image_urls_from_html(body: str, page_url: str) -> List[str]:
                     candidates.append(src)
 
     for url_match in re.finditer(
-        r'https?://[^"\'<>\s]+\.(?:jpe?g|png|webp|gif)(?:\?[^"\'<>\s]*)?',
+        r'https?://[^"\'<>\s]+\.(?:jpe?g|png|webp)(?:\?[^"\'<>\s]*)?',
         body or "",
         flags=re.IGNORECASE,
     ):
         candidates.append(url_match.group(0))
     for path_match in re.finditer(
-        r'["\']((?:/[^"\'<>\s]+)?/(?:images|media)/[^"\'<>\s]+\.(?:jpe?g|png|webp|gif)(?:\?[^"\']*)?)["\']',
+        r'["\']((?:/[^"\'<>\s]+)?/(?:images|media)/[^"\'<>\s]+\.(?:jpe?g|png|webp)(?:\?[^"\']*)?)["\']',
         body or "",
         flags=re.IGNORECASE,
     ):
@@ -1076,7 +1086,6 @@ def fetch_dictionary_image_url(term: str) -> str:
         fetch_cambridge_image_url,
         fetch_longman_image_url,
         fetch_oxford_image_url,
-        fetch_wikipedia_image_url,
     ):
         image_url = fetcher(term)
         if image_url:
@@ -1133,8 +1142,6 @@ def ensure_noun_image(media_dir: Path, item: InputItem) -> Optional[AudioAsset]:
         ext = ".png"
     elif ".webp" in low:
         ext = ".webp"
-    elif ".gif" in low:
-        ext = ".gif"
     filename = f"img_en_{slugify(clean_term)}_{stable_guid(item.mode, item.term)[:8]}{ext}"
     filepath = media_dir / filename
     if _is_plausible_image(filepath):
