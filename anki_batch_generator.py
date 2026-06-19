@@ -46,9 +46,17 @@ from pathlib import Path
 from typing import Callable, Dict, Iterable, List, Optional, Tuple
 from urllib.parse import quote, unquote, urljoin, urlparse
 
-import genanki
 import requests
-from openai import OpenAI
+
+try:
+    import genanki
+except ImportError:
+    genanki = None
+
+try:
+    from openai import OpenAI
+except ImportError:
+    OpenAI = None
 
 SUPPORTED_MODES = {"en_word", "ja_word", "interview", "paper", "interest"}
 DEFAULT_TEXT_MODEL = "gpt-5.4"
@@ -120,6 +128,13 @@ class InputItem:
 
 
 @dataclass
+class ParsedEnglishTerm:
+    raw: str
+    word: str
+    requested_pos: str = ""
+
+
+@dataclass
 class BuiltCard:
     front: str
     back: str
@@ -142,6 +157,36 @@ class EnglishPronunciationInfo:
     source: str = ""
     # After audio_url, try these UK URLs in order (Oxford → Longman → Cambridge); TTS only if all fail.
     audio_fallback_urls: List[str] = field(default_factory=list)
+
+
+@dataclass
+class DictionarySenseCandidate:
+    source: str
+    word: str
+    pos: str
+    sense_id: str
+    definition: str
+    image_url: str = ""
+    image_alt: str = ""
+    examples: List[str] = field(default_factory=list)
+
+
+@dataclass
+class DictionaryEntryResult:
+    source: str = ""
+    word: str = ""
+    requested_pos: str = ""
+    actual_pos: str = ""
+    ipa_uk: str = ""
+    audio_uk_url: str = ""
+    definition: str = ""
+    image_url: str = ""
+    image_alt: str = ""
+    sense_id: str = ""
+    ipa_source: str = ""
+    audio_source: str = ""
+    definition_source: str = ""
+    image_source: str = ""
 
 
 class CacheStore:
@@ -300,6 +345,21 @@ def normalize_pos_tag(raw: str) -> str:
     return POS_CANONICAL.get(key, "")
 
 
+def parse_english_term(term: str) -> ParsedEnglishTerm:
+    raw = (term or "").strip()
+    if not raw:
+        return ParsedEnglishTerm(raw="", word="", requested_pos="")
+    parts = raw.split()
+    requested_pos = normalize_pos_tag(parts[-1]) if parts else ""
+    if requested_pos and len(parts) >= 2:
+        return ParsedEnglishTerm(
+            raw=raw,
+            word=" ".join(parts[:-1]).strip(),
+            requested_pos=requested_pos,
+        )
+    return ParsedEnglishTerm(raw=raw, word=strip_pos_labels_from_term(raw) or raw, requested_pos="")
+
+
 def extract_pos_tags(text: str) -> List[str]:
     tags: List[str] = []
     for m in POS_PATTERN.finditer(text or ""):
@@ -384,6 +444,25 @@ def _headword_matches_term(headword: str, term: str) -> bool:
     if query_variants & found_variants:
         return True
     return query.replace(" ", "-") == found.replace(" ", "-")
+
+
+def is_cross_reference_definition(definition: str) -> bool:
+    text = _normalize_headword(definition)
+    if not text:
+        return False
+    patterns = (
+        r"^past simple of\b",
+        r"^past tense of\b",
+        r"^past participle of\b",
+        r"^plural of\b",
+        r"^comparative of\b",
+        r"^superlative of\b",
+        r"^present participle of\b",
+        r"^third person singular of\b",
+        r"^see\b",
+        r"^see also\b",
+    )
+    return any(re.search(pattern, text) for pattern in patterns)
 
 
 def _cambridge_final_url_matches_term(final_url: str, term: str) -> bool:
@@ -862,6 +941,8 @@ def _is_plausible_image(path: Path) -> bool:
 
 
 IMAGE_IGNORE_KEYWORDS = {
+    "ad",
+    "ads",
     "1x1",
     "ad-banner",
     "ad_banner",
@@ -873,9 +954,12 @@ IMAGE_IGNORE_KEYWORDS = {
     "blank",
     "banner-ad",
     "banner_ad",
+    "banner",
+    "cookie",
     "doubleclick",
     "favicon",
     "icon",
+    "og-image",
     "googlesyndication",
     "icon-close",
     "lazy",
@@ -895,7 +979,10 @@ IMAGE_IGNORE_KEYWORDS = {
 DICTIONARY_IMAGE_RULES = {
     "dictionary.cambridge.org": ("/images/full/", "/images/thumb/"),
     "www.ldoceonline.com": ("/media/english/illustration/",),
-    "www.oxfordlearnersdictionaries.com": ("/media/english/fullsize/",),
+    "www.oxfordlearnersdictionaries.com": (
+        "/media/english/fullsize/",
+        "/media/english/thumb/",
+    ),
 }
 
 
@@ -994,6 +1081,691 @@ def _choose_image_url(candidates: List[str], preferred_markers: List[str]) -> st
             if marker in url.lower():
                 return url
     return candidates[0]
+
+
+def _clean_dictionary_text(raw: str) -> str:
+    text = html.unescape(_strip_tags(raw or "")).replace("\u00a0", " ")
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
+def _extract_first_attr(tag: str, attr: str) -> str:
+    match = re.search(
+        rf'\b{attr}\s*=\s*["\']([^"\']+)["\']',
+        tag or "",
+        flags=re.IGNORECASE,
+    )
+    return html.unescape(match.group(1)).strip() if match else ""
+
+
+def _extract_first_img_alt(block: str) -> str:
+    match = re.search(r"<img\b[^>]*>", block or "", flags=re.IGNORECASE | re.DOTALL)
+    return _extract_first_attr(match.group(0), "alt") if match else ""
+
+
+def _first_dictionary_image_in_block(
+    block: str,
+    page_url: str,
+    preferred_markers: List[str],
+) -> str:
+    candidates = _extract_image_urls_from_html(block, page_url)
+    return _choose_image_url(candidates, preferred_markers)
+
+
+def _first_match_text(block: str, patterns: List[str]) -> str:
+    for pattern in patterns:
+        match = re.search(pattern, block or "", flags=re.IGNORECASE | re.DOTALL)
+        if match:
+            text = _clean_dictionary_text(match.group(1))
+            if text:
+                return text
+    return ""
+
+
+def _all_match_texts(block: str, patterns: List[str], limit: int = 3) -> List[str]:
+    values: List[str] = []
+    for pattern in patterns:
+        for match in re.finditer(pattern, block or "", flags=re.IGNORECASE | re.DOTALL):
+            text = _clean_dictionary_text(match.group(1))
+            if text and text not in values:
+                values.append(text)
+                if len(values) >= limit:
+                    return values
+    return values
+
+
+def _find_nearest_pos_before(body: str, block_start: int, patterns: List[str]) -> str:
+    scope = (body or "")[:block_start]
+    pos = ""
+    for pattern in patterns:
+        for match in re.finditer(pattern, scope, flags=re.IGNORECASE | re.DOTALL):
+            candidate = normalize_pos_tag(_clean_dictionary_text(match.group(1)))
+            if candidate:
+                pos = candidate
+    return pos
+
+
+PROVIDER_ORDER = ["cambridge", "oxford", "longman"]
+
+
+def _attr_pattern(attr: str) -> str:
+    return rf"\b{attr}\s*=\s*(?:\"([^\"]+)\"|'([^']+)'|([^\s>]+))"
+
+
+def _find_attrs(html_text: str, attr: str) -> List[str]:
+    values: List[str] = []
+    for match in re.finditer(_attr_pattern(attr), html_text or "", flags=re.IGNORECASE):
+        value = next((g for g in match.groups() if g), "")
+        value = html.unescape(value).strip()
+        if value:
+            values.append(value)
+    return values
+
+
+def _dictionary_url(base_url: str, raw_url: str) -> str:
+    raw = html.unescape((raw_url or "").strip().strip("'\""))
+    if not raw:
+        return ""
+    if raw.startswith("//"):
+        return f"https:{raw}"
+    return urljoin(base_url, raw)
+
+
+def _first_uk_audio_url(block: str, base_url: str, preferred_markers: List[str]) -> str:
+    urls: List[str] = []
+    for attr in ("data-src-mp3", "src"):
+        for raw in _find_attrs(block, attr):
+            url = _dictionary_url(base_url, raw)
+            if url.lower().endswith(".mp3") and url not in urls:
+                urls.append(url)
+    for marker in preferred_markers:
+        marker_low = marker.lower()
+        for url in urls:
+            if marker_low in url.lower():
+                return url
+    return urls[0] if urls else ""
+
+
+def _first_ipa(block: str, patterns: List[str]) -> str:
+    ipa = _first_match_text(block, patterns)
+    return ipa.replace(" ", "")
+
+
+def _entry_matches_requested_pos(actual_pos: str, requested_pos: str) -> bool:
+    if not requested_pos:
+        return True
+    return normalize_pos_tag(actual_pos) == requested_pos
+
+
+def _definition_is_usable(definition: str, requested_pos: str) -> bool:
+    if not definition:
+        return False
+    if is_cross_reference_definition(definition):
+        return False
+    return True
+
+
+def _finalize_entry_sources(entry: DictionaryEntryResult) -> DictionaryEntryResult:
+    if entry.ipa_uk and not entry.ipa_source:
+        entry.ipa_source = entry.source
+    if entry.audio_uk_url and not entry.audio_source:
+        entry.audio_source = entry.source
+    if entry.definition and not entry.definition_source:
+        entry.definition_source = entry.source
+    if entry.image_url and not entry.image_source:
+        entry.image_source = entry.source
+    return entry
+
+
+def _cambridge_pos_blocks(body: str, word: str) -> List[str]:
+    starts = [
+        match.start()
+        for match in re.finditer(
+            r'<div[^>]*class="[^"]*\bpos-header\b[^"]*"[^>]*>',
+            body or "",
+            flags=re.IGNORECASE,
+        )
+    ]
+    blocks: List[str] = []
+    for i, start in enumerate(starts):
+        end = starts[i + 1] if i + 1 < len(starts) else min(len(body), start + 30000)
+        block = body[start:end]
+        hw_match = re.search(
+            r'<span class="hw dhw[^"]*">(.*?)</span>',
+            block,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        if hw_match and _headword_matches_term(_clean_dictionary_text(hw_match.group(1)), word):
+            blocks.append(block)
+    return blocks
+
+
+def _cambridge_entry_result(word: str, requested_pos: str = "") -> Optional[DictionaryEntryResult]:
+    normalized = word.strip().replace(" ", "-")
+    if not normalized:
+        return None
+    page_url = f"https://dictionary.cambridge.org/dictionary/english/{quote(normalized)}"
+
+    def _do_request() -> Optional[DictionaryEntryResult]:
+        resp = requests.get(
+            page_url,
+            timeout=12,
+            headers={"User-Agent": "anki-batch-generator/2.0"},
+        )
+        if not resp.ok or not _cambridge_final_url_matches_term(resp.url, word):
+            return None
+        for index, block in enumerate(_cambridge_pos_blocks(resp.text, word), start=1):
+            actual_pos = _first_match_text(
+                block,
+                [r'<span[^>]*class="[^"]*\bpos\b[^"]*\bdpos\b[^"]*"[^>]*>(.*?)</span>'],
+            )
+            actual_pos = normalize_pos_tag(actual_pos)
+            if not _entry_matches_requested_pos(actual_pos, requested_pos):
+                continue
+            definition = _first_match_text(
+                block,
+                [r'<div[^>]*class="[^"]*\bdef\b[^"]*\bddef_d\b[^"]*"[^>]*>(.*?)</div>'],
+            )
+            if definition and not _definition_is_usable(definition, requested_pos):
+                continue
+            uk_block_match = re.search(
+                r'(<span[^>]*class="[^"]*\buk dpron-i\b[^"]*"[^>]*>.*?</span>)',
+                block,
+                flags=re.IGNORECASE | re.DOTALL,
+            )
+            audio_block = uk_block_match.group(1) if uk_block_match else block
+            entry = DictionaryEntryResult(
+                source="cambridge",
+                word=word,
+                requested_pos=requested_pos,
+                actual_pos=actual_pos,
+                ipa_uk=_first_ipa(
+                    audio_block,
+                    [r'<span[^>]*class="[^"]*\bipa\b[^"]*"[^>]*>(.*?)</span>'],
+                ),
+                audio_uk_url=_first_uk_audio_url(
+                    audio_block,
+                    "https://dictionary.cambridge.org",
+                    ["/media/english/uk_pron/", "/uk_pron/", "/uk_"],
+                ),
+                definition=definition,
+                image_url=_first_dictionary_image_in_block(
+                    block,
+                    resp.url,
+                    ["/images/full/", "/images/thumb/"],
+                ),
+                image_alt=_extract_first_img_alt(block),
+                sense_id=f"cambridge:{normalized}:{actual_pos or 'entry'}:{index}",
+            )
+            return _finalize_entry_sources(entry)
+        return None
+
+    try:
+        return retry_call(_do_request, retries=2, base_sleep=1.0)
+    except Exception:
+        return None
+
+
+def _oxford_entry_result(word: str, requested_pos: str = "") -> Optional[DictionaryEntryResult]:
+    normalized = word.strip().replace(" ", "-")
+    if not normalized:
+        return None
+    slugs = [normalized] + [f"{normalized}_{i}" for i in range(1, 5)]
+
+    def _fetch_one(slug: str, index: int) -> Optional[DictionaryEntryResult]:
+        page_url = f"https://www.oxfordlearnersdictionaries.com/definition/english/{quote(slug)}"
+        resp = requests.get(
+            page_url,
+            timeout=12,
+            headers={"User-Agent": "anki-batch-generator/2.0"},
+        )
+        if not resp.ok:
+            return None
+        body = resp.text
+        if _oxford_page_is_misspelling(body):
+            return None
+        headword = _extract_oxford_headword(body)
+        if headword and not _headword_matches_term(headword, word):
+            return None
+        actual_pos = _first_match_text(
+            body,
+            [r'<span[^>]*class="[^"]*\bpos\b[^"]*"[^>]*>(.*?)</span>'],
+        )
+        actual_pos = normalize_pos_tag(actual_pos)
+        if not _entry_matches_requested_pos(actual_pos, requested_pos):
+            return None
+        definition = _first_match_text(
+            body,
+            [r'<span[^>]*class="[^"]*\bdef\b[^"]*"[^>]*>(.*?)</span>'],
+        )
+        if definition and not _definition_is_usable(definition, requested_pos):
+            return None
+        entry = DictionaryEntryResult(
+            source="oxford",
+            word=headword or word,
+            requested_pos=requested_pos,
+            actual_pos=actual_pos,
+            ipa_uk=_first_ipa(
+                body,
+                [r'<div[^>]*class="[^"]*\bphons_br\b[^"]*"[^>]*>.*?<span[^>]*class="[^"]*\bphon\b[^"]*"[^>]*>(.*?)</span>'],
+            ),
+            audio_uk_url=_first_uk_audio_url(
+                body,
+                "https://www.oxfordlearnersdictionaries.com",
+                ["/media/english/uk_pron/", "uk_pron", "__gb_", "_gb_"],
+            ),
+            definition=definition,
+            image_url=_first_dictionary_image_in_block(
+                body,
+                resp.url,
+                ["/media/english/fullsize/", "/media/english/thumb/"],
+            ),
+            image_alt=_extract_first_img_alt(body),
+            sense_id=f"oxford:{slug}:{actual_pos or 'entry'}:{index}",
+        )
+        return _finalize_entry_sources(entry)
+
+    try:
+        for index, slug in enumerate(slugs):
+            entry = retry_call(lambda slug=slug, index=index: _fetch_one(slug, index), retries=2, base_sleep=1.0)
+            if entry:
+                return entry
+    except Exception:
+        return None
+    return None
+
+
+def _longman_entry_blocks(body: str) -> List[str]:
+    starts = [
+        match.start()
+        for match in re.finditer(
+            r'<span[^>]*class="[^"]*\bldoceEntry\b[^"]*\bEntry\b[^"]*"[^>]*>',
+            body or "",
+            flags=re.IGNORECASE,
+        )
+    ]
+    if not starts:
+        return [body or ""]
+    blocks: List[str] = []
+    for i, start in enumerate(starts):
+        end = starts[i + 1] if i + 1 < len(starts) else len(body)
+        blocks.append(body[start:end])
+    return blocks
+
+
+def _longman_entry_result(word: str, requested_pos: str = "") -> Optional[DictionaryEntryResult]:
+    normalized = word.strip().replace(" ", "-")
+    if not normalized:
+        return None
+    page_url = f"https://www.ldoceonline.com/dictionary/{quote(normalized)}"
+
+    def _do_request() -> Optional[DictionaryEntryResult]:
+        resp = requests.get(
+            page_url,
+            timeout=12,
+            headers={"User-Agent": "anki-batch-generator/2.0"},
+        )
+        if not resp.ok or "/spellcheck/" in (resp.url or "").lower():
+            return None
+        for index, block in enumerate(_longman_entry_blocks(resp.text), start=1):
+            headword = _first_match_text(
+                block,
+                [
+                    r'<span[^>]*class="[^"]*\bHWD\b[^"]*"[^>]*>(.*?)</span>',
+                    r"<h1[^>]*>(.*?)</h1>",
+                ],
+            )
+            if headword and not _headword_matches_term(headword, word):
+                continue
+            actual_pos = _first_match_text(
+                block,
+                [r'<span[^>]*class="[^"]*\bPOS\b[^"]*"[^>]*>(.*?)</span>'],
+            )
+            actual_pos = normalize_pos_tag(actual_pos)
+            if not _entry_matches_requested_pos(actual_pos, requested_pos):
+                continue
+            definition = _first_match_text(
+                block,
+                [r'<span[^>]*class="[^"]*\bDEF\b[^"]*"[^>]*>(.*?)</span>'],
+            )
+            if definition and not _definition_is_usable(definition, requested_pos):
+                continue
+            entry = DictionaryEntryResult(
+                source="longman",
+                word=headword or word,
+                requested_pos=requested_pos,
+                actual_pos=actual_pos,
+                ipa_uk=_first_ipa(
+                    block,
+                    [r'<span[^>]*class="[^"]*\bPRON\b[^"]*"[^>]*>(.*?)</span>'],
+                ),
+                audio_uk_url=_first_uk_audio_url(
+                    block,
+                    "https://www.ldoceonline.com",
+                    ["breprons", "/gb/", "_gb_"],
+                ),
+                definition=definition,
+                image_url=_first_dictionary_image_in_block(
+                    block,
+                    resp.url,
+                    ["/media/english/illustration/"],
+                ),
+                image_alt=_extract_first_img_alt(block),
+                sense_id=f"longman:{normalized}:{actual_pos or 'entry'}:{index}",
+            )
+            return _finalize_entry_sources(entry)
+        return None
+
+    try:
+        return retry_call(_do_request, retries=2, base_sleep=1.0)
+    except Exception:
+        return None
+
+
+def fetch_dictionary_entries(word: str, requested_pos: str = "") -> List[DictionaryEntryResult]:
+    entries: List[DictionaryEntryResult] = []
+    providers = {
+        "cambridge": _cambridge_entry_result,
+        "oxford": _oxford_entry_result,
+        "longman": _longman_entry_result,
+    }
+    for provider in PROVIDER_ORDER:
+        entry = providers[provider](word, requested_pos)
+        if entry:
+            entries.append(entry)
+    return entries
+
+
+def merge_dictionary_entries(entries: List[DictionaryEntryResult]) -> DictionaryEntryResult:
+    merged = DictionaryEntryResult()
+    by_source = {entry.source: entry for entry in entries}
+    for source in PROVIDER_ORDER:
+        entry = by_source.get(source)
+        if not entry:
+            continue
+        if not merged.word and entry.word:
+            merged.word = entry.word
+        if not merged.requested_pos and entry.requested_pos:
+            merged.requested_pos = entry.requested_pos
+        if not merged.actual_pos and entry.actual_pos:
+            merged.actual_pos = entry.actual_pos
+        if not merged.ipa_uk and entry.ipa_uk:
+            merged.ipa_uk = entry.ipa_uk
+            merged.ipa_source = source
+        if not merged.audio_uk_url and entry.audio_uk_url:
+            merged.audio_uk_url = entry.audio_uk_url
+            merged.audio_source = source
+        if not merged.definition and entry.definition:
+            merged.definition = entry.definition
+            merged.definition_source = source
+            merged.sense_id = entry.sense_id
+        if not merged.image_url and entry.image_url:
+            merged.image_url = entry.image_url
+            merged.image_alt = entry.image_alt
+            merged.image_source = source
+    merged.source = merged.definition_source or merged.ipa_source or merged.audio_source or merged.image_source
+    return merged
+
+
+def dictionary_result_preview(raw_term: str) -> Dict:
+    parsed = parse_english_term(raw_term)
+    entries = fetch_dictionary_entries(parsed.word, parsed.requested_pos)
+    merged = merge_dictionary_entries(entries)
+    return {
+        "raw": parsed.raw,
+        "word": parsed.word,
+        "requested_pos": parsed.requested_pos,
+        "actual_pos": merged.actual_pos,
+        "definition": merged.definition,
+        "definition_source": merged.definition_source,
+        "ipa_uk": merged.ipa_uk,
+        "ipa_source": merged.ipa_source,
+        "audio_uk_url": merged.audio_uk_url,
+        "audio_source": merged.audio_source,
+        "image_url": merged.image_url,
+        "image_source": merged.image_source,
+        "sense_id": merged.sense_id,
+        "provider_entries": [
+            {
+                "source": entry.source,
+                "actual_pos": entry.actual_pos,
+                "definition": entry.definition,
+                "ipa_uk": entry.ipa_uk,
+                "audio_uk_url": entry.audio_uk_url,
+                "image_url": entry.image_url,
+                "sense_id": entry.sense_id,
+            }
+            for entry in entries
+        ],
+    }
+
+
+def fetch_cambridge_sense_candidates(term: str) -> List[DictionarySenseCandidate]:
+    clean_term = strip_pos_labels_from_term(term)
+    if not clean_term:
+        return []
+    normalized = clean_term.strip().replace(" ", "-")
+    url = f"https://dictionary.cambridge.org/dictionary/english/{quote(normalized)}"
+
+    def _do_request() -> List[DictionarySenseCandidate]:
+        resp = requests.get(
+            url,
+            timeout=12,
+            headers={"User-Agent": "anki-batch-generator/2.0"},
+        )
+        if not resp.ok or not _cambridge_final_url_matches_term(resp.url, clean_term):
+            return []
+        body = resp.text
+        entry_scope = _extract_cambridge_entry_scope(body, clean_term)
+        if not entry_scope:
+            return []
+
+        candidates: List[DictionarySenseCandidate] = []
+        for index, match in enumerate(
+            re.finditer(
+                r'<div[^>]*class="[^"]*\bdef-block\b[^"]*"[^>]*>(.*?)(?=<div[^>]*class="[^"]*\bdef-block\b|<div[^>]*class="[^"]*\bpr\b|</article>|$)',
+                entry_scope,
+                flags=re.IGNORECASE | re.DOTALL,
+            ),
+            start=1,
+        ):
+            block = match.group(1)
+            definition = _first_match_text(
+                block,
+                [r'<div[^>]*class="[^"]*\bdef\b[^"]*\bddef_d\b[^"]*"[^>]*>(.*?)</div>'],
+            )
+            if not definition:
+                continue
+            pos = _find_nearest_pos_before(
+                entry_scope,
+                match.start(),
+                [r'<span[^>]*class="[^"]*\bpos\b[^"]*\bdpos\b[^"]*"[^>]*>(.*?)</span>'],
+            )
+            examples = _all_match_texts(
+                block,
+                [
+                    r'<div[^>]*class="[^"]*\beg\b[^"]*\bdeg\b[^"]*"[^>]*>(.*?)</div>',
+                    r'<span[^>]*class="[^"]*\beg\b[^"]*\bdeg\b[^"]*"[^>]*>(.*?)</span>',
+                ],
+            )
+            image_url = _first_dictionary_image_in_block(
+                block,
+                resp.url,
+                ["/images/full/", "/images/thumb/"],
+            )
+            candidates.append(
+                DictionarySenseCandidate(
+                    source="cambridge",
+                    word=clean_term,
+                    pos=pos,
+                    sense_id=f"cambridge:{normalized}:{index}",
+                    definition=definition,
+                    image_url=image_url,
+                    image_alt=_extract_first_img_alt(block),
+                    examples=examples,
+                )
+            )
+        return candidates
+
+    try:
+        return retry_call(_do_request, retries=2, base_sleep=1.0)
+    except Exception:
+        return []
+
+
+def fetch_oxford_sense_candidates(term: str) -> List[DictionarySenseCandidate]:
+    clean_term = strip_pos_labels_from_term(term)
+    if not clean_term:
+        return []
+    normalized = clean_term.strip().replace(" ", "-")
+    url = f"https://www.oxfordlearnersdictionaries.com/definition/english/{quote(normalized)}"
+
+    def _do_request() -> List[DictionarySenseCandidate]:
+        resp = requests.get(
+            url,
+            timeout=12,
+            headers={"User-Agent": "anki-batch-generator/2.0"},
+        )
+        if not resp.ok:
+            return []
+        body = resp.text
+        if _oxford_page_is_misspelling(body):
+            return []
+        headword = _extract_oxford_headword(body)
+        if headword and not _headword_matches_term(headword, clean_term):
+            return []
+
+        candidates: List[DictionarySenseCandidate] = []
+        for index, match in enumerate(
+            re.finditer(
+                r'<li[^>]*class="[^"]*\bsense\b[^"]*"[^>]*>(.*?)(?=<li[^>]*class="[^"]*\bsense\b|<span[^>]*class="[^"]*\bid-g\b|</ol>|$)',
+                body,
+                flags=re.IGNORECASE | re.DOTALL,
+            ),
+            start=1,
+        ):
+            block = match.group(1)
+            definition = _first_match_text(
+                block,
+                [r'<span[^>]*class="[^"]*\bdef\b[^"]*"[^>]*>(.*?)</span>'],
+            )
+            if not definition:
+                continue
+            pos = _find_nearest_pos_before(
+                body,
+                match.start(),
+                [r'<span[^>]*class="[^"]*\bpos\b[^"]*"[^>]*>(.*?)</span>'],
+            )
+            examples = _all_match_texts(
+                block,
+                [r'<span[^>]*class="[^"]*\bx\b[^"]*"[^>]*>(.*?)</span>'],
+            )
+            image_url = _first_dictionary_image_in_block(
+                block,
+                resp.url,
+                ["/media/english/fullsize/", "/media/english/thumb/"],
+            )
+            candidates.append(
+                DictionarySenseCandidate(
+                    source="oxford",
+                    word=headword or clean_term,
+                    pos=pos,
+                    sense_id=f"oxford:{normalized}:{index}",
+                    definition=definition,
+                    image_url=image_url,
+                    image_alt=_extract_first_img_alt(block),
+                    examples=examples,
+                )
+            )
+        return candidates
+
+    try:
+        return retry_call(_do_request, retries=2, base_sleep=1.0)
+    except Exception:
+        return []
+
+
+def fetch_longman_sense_candidates(term: str) -> List[DictionarySenseCandidate]:
+    clean_term = strip_pos_labels_from_term(term)
+    if not clean_term:
+        return []
+    normalized = clean_term.strip().replace(" ", "-")
+    url = f"https://www.ldoceonline.com/dictionary/{quote(normalized)}"
+
+    def _do_request() -> List[DictionarySenseCandidate]:
+        resp = requests.get(
+            url,
+            timeout=12,
+            headers={"User-Agent": "anki-batch-generator/2.0"},
+        )
+        if not resp.ok or "/spellcheck/" in (resp.url or "").lower():
+            return []
+        body = resp.text
+        headword_match = re.search(r"<h1[^>]*>([^<]+)</h1>", body, flags=re.IGNORECASE)
+        headword = _strip_tags(html.unescape(headword_match.group(1))) if headword_match else ""
+        if not headword or not _headword_matches_term(headword, clean_term):
+            return []
+
+        candidates: List[DictionarySenseCandidate] = []
+        for index, match in enumerate(
+            re.finditer(
+                r'<span[^>]*class="[^"]*\bSense\b[^"]*"[^>]*>(.*?)(?=<span[^>]*class="[^"]*\bSense\b|<span[^>]*class="[^"]*\bEntry\b|$)',
+                body,
+                flags=re.IGNORECASE | re.DOTALL,
+            ),
+            start=1,
+        ):
+            block = match.group(1)
+            definition = _first_match_text(
+                block,
+                [r'<span[^>]*class="[^"]*\bDEF\b[^"]*"[^>]*>(.*?)</span>'],
+            )
+            if not definition:
+                continue
+            pos = _find_nearest_pos_before(
+                body,
+                match.start(),
+                [r'<span[^>]*class="[^"]*\bPOS\b[^"]*"[^>]*>(.*?)</span>'],
+            )
+            examples = _all_match_texts(
+                block,
+                [r'<span[^>]*class="[^"]*\bEXAMPLE\b[^"]*"[^>]*>(.*?)</span>'],
+            )
+            image_url = _first_dictionary_image_in_block(
+                block,
+                resp.url,
+                ["/media/english/illustration/"],
+            )
+            candidates.append(
+                DictionarySenseCandidate(
+                    source="longman",
+                    word=headword or clean_term,
+                    pos=pos,
+                    sense_id=f"longman:{normalized}:{index}",
+                    definition=definition,
+                    image_url=image_url,
+                    image_alt=_extract_first_img_alt(block),
+                    examples=examples,
+                )
+            )
+        return candidates
+
+    try:
+        return retry_call(_do_request, retries=2, base_sleep=1.0)
+    except Exception:
+        return []
+
+
+def fetch_best_dictionary_sense(term: str) -> Optional[DictionarySenseCandidate]:
+    for fetcher in (
+        fetch_cambridge_sense_candidates,
+        fetch_oxford_sense_candidates,
+        fetch_longman_sense_candidates,
+    ):
+        for candidate in fetcher(term):
+            if (candidate.definition or "").strip():
+                return candidate
+    return None
 
 
 def fetch_cambridge_image_url(term: str) -> str:
@@ -1129,11 +1901,19 @@ def fetch_wikipedia_image_url(term: str) -> str:
         return ""
 
 
-def ensure_noun_image(media_dir: Path, item: InputItem) -> Optional[AudioAsset]:
+def ensure_noun_image(
+    media_dir: Path,
+    item: InputItem,
+    preferred_image_url: str = "",
+) -> Optional[AudioAsset]:
     clean_term = strip_pos_labels_from_term(item.term) or item.term.strip()
     if not clean_term:
         return None
-    image_url = fetch_dictionary_image_url(clean_term)
+    image_url = (preferred_image_url or "").strip()
+    if image_url and not _is_candidate_dictionary_image_url(image_url):
+        image_url = ""
+    if not image_url:
+        image_url = fetch_dictionary_image_url(clean_term)
     if not image_url:
         return None
     ext = ".jpg"
@@ -1234,6 +2014,13 @@ def build_en_word_prompt() -> str:
         "- Never invent or copy IPA for multi-word terms.\n"
         "- If no `phonetic_hint`, output British English (BrE) IPA style.\n"
         "- Ignore POS labels such as noun/verb/adj in pronunciation.\n"
+        "- For en_word, `example_simple_en` must match `requested_pos` and `dictionary_definition` "
+        "when provided.\n"
+        "- If `requested_pos` is noun, use the word as a noun; if verb, use it as a verb; if adjective "
+        "or adverb, use that part of speech.\n"
+        "- Do not generate an example for a different part of speech.\n"
+        "- If `dictionary_definition` is non-empty, you may leave `definition_en` empty or repeat that "
+        "definition; the final card will use the dictionary definition.\n"
         "- Choose the most common meaning.\n"
     )
 
@@ -1364,10 +2151,17 @@ def build_user_payload(
     phonetic_hint: str,
     term_for_pronunciation: str,
     phonetic_source: str = "",
+    dictionary_definition: str = "",
+    requested_pos: str = "",
+    parsed_word: str = "",
 ) -> str:
     """Variable inputs only; mode-specific rules live in PROMPT_MAP system prompts."""
     return (
         "Fill the JSON fields described in your system instructions using this input.\n\n"
+        f"raw_term: {item.term}\n"
+        f"word: {parsed_word or term_for_pronunciation or item.term}\n"
+        f"requested_pos: {requested_pos or '(none)'}\n"
+        f"dictionary_definition: {dictionary_definition or '(none)'}\n"
         f"term: {item.term}\n"
         f"term_for_pronunciation: {term_for_pronunciation or item.term}\n"
         f"lexical_word_count: {lexical_word_count(item.term)}\n"
@@ -1387,10 +2181,19 @@ def call_openai_json(
     term_for_pronunciation: str,
     reasoning_effort: str,
     phonetic_source: str = "",
+    dictionary_definition: str = "",
+    requested_pos: str = "",
+    parsed_word: str = "",
 ) -> Dict:
     system_prompt = PROMPT_MAP[item.mode]()
     user_prompt = build_user_payload(
-        item, phonetic_hint, term_for_pronunciation, phonetic_source
+        item,
+        phonetic_hint,
+        term_for_pronunciation,
+        phonetic_source,
+        dictionary_definition=dictionary_definition,
+        requested_pos=requested_pos,
+        parsed_word=parsed_word,
     )
 
     def _call() -> Dict:
@@ -1634,7 +2437,7 @@ def build_en_word_card(
         front=front,
         back=back,
         tags=["english", "vocab"],
-        guid_seed=f"en_word::{term.lower()}",
+        guid_seed=f"en_word::{term.strip()}",
     )
 
 
@@ -1734,19 +2537,25 @@ def build_card(
     dict_audio = ""
     dict_audio_fallbacks: List[str] = []
     dict_pos_tags: List[str] = []
+    dictionary_entry = DictionaryEntryResult()
+    parsed_en = ParsedEnglishTerm(raw=item.term.strip(), word=item.term.strip(), requested_pos="")
     spoken_term = item.term.strip()
     if item.mode == "en_word":
-        spoken_term = strip_pos_labels_from_term(item.term) or item.term.strip()
-        if en_word_uses_dictionary_lookup(item.term):
-            if is_two_word_term(item.term):
-                pron_info = fetch_english_pronunciation_two_words(spoken_term)
-            else:
-                pron_info = fetch_english_pronunciation(spoken_term)
-            dict_phonetic = pron_info.phonetic
-            dict_phonetic_source = (pron_info.source or "").strip()
-            dict_audio = pron_info.audio_url
-            dict_audio_fallbacks = list(pron_info.audio_fallback_urls or [])
-            dict_pos_tags = pron_info.pos_tags
+        parsed_en = parse_english_term(item.term)
+        spoken_term = parsed_en.word or item.term.strip()
+        if en_word_uses_dictionary_lookup(spoken_term):
+            dictionary_entry = merge_dictionary_entries(
+                fetch_dictionary_entries(spoken_term, parsed_en.requested_pos)
+            )
+            dict_phonetic = dictionary_entry.ipa_uk
+            dict_phonetic_source = (dictionary_entry.ipa_source or "").strip()
+            dict_audio = dictionary_entry.audio_uk_url
+            dict_audio_fallbacks = []
+            dict_pos_tags = [
+                p
+                for p in (parsed_en.requested_pos, dictionary_entry.actual_pos)
+                if p
+            ]
 
     cache_key = hashlib.sha1(
         json.dumps(
@@ -1758,6 +2567,9 @@ def build_card(
                 "llm_schema": LLM_SCHEMA_VERSION,
                 "dict_phonetic": dict_phonetic,
                 "dict_phonetic_source": dict_phonetic_source,
+                "parsed_word": parsed_en.word if item.mode == "en_word" else "",
+                "requested_pos": parsed_en.requested_pos if item.mode == "en_word" else "",
+                "dictionary_definition": dictionary_entry.definition if item.mode == "en_word" else "",
             },
             ensure_ascii=False,
             sort_keys=True,
@@ -1776,13 +2588,20 @@ def build_card(
             term_for_pronunciation=spoken_term,
             reasoning_effort=reasoning_effort,
             phonetic_source=dict_phonetic_source,
+            dictionary_definition=dictionary_entry.definition if item.mode == "en_word" else "",
+            requested_pos=parsed_en.requested_pos if item.mode == "en_word" else "",
+            parsed_word=parsed_en.word if item.mode == "en_word" else "",
         )
         cache.set(cache_key, llm)
+
+    if item.mode == "en_word" and dictionary_entry.definition:
+        llm = dict(llm)
+        llm["definition_en"] = dictionary_entry.definition
 
     assets: List[AudioAsset] = []
     if item.mode == "en_word":
         audio_assets: List[AudioAsset] = []
-        if is_single_word_term(item.term):
+        if is_single_word_term(spoken_term):
             single = ensure_english_audio(
                 client=client,
                 media_dir=media_dir,
@@ -1796,13 +2615,12 @@ def build_card(
             if single:
                 audio_assets = [single]
         image: Optional[AudioAsset] = None
-        definition_en = str(llm.get("definition_en") or "").strip()
-        if should_attach_noun_image(item.term, item.hint, dict_pos_tags) and is_common_concrete_noun(
-            item.term,
-            item.hint,
-            definition_en,
-        ):
-            image = ensure_noun_image(media_dir=media_dir, item=item)
+        if dictionary_entry.image_url:
+            image = ensure_noun_image(
+                media_dir=media_dir,
+                item=item,
+                preferred_image_url=dictionary_entry.image_url,
+            )
         assets.extend(audio_assets)
         if image:
             assets.append(image)
@@ -1839,12 +2657,60 @@ def write_preview_json(path: Path, rows: List[BuiltCard]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def write_dict_preview_json(path: Path, payload: List[Dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def run_dictionary_test_only(items: List[InputItem], preview_json: Path) -> None:
+    payload = [dictionary_result_preview(item.term) for item in items if item.mode == "en_word"]
+    if preview_json:
+        write_dict_preview_json(preview_json, payload)
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
+
+
+def run_self_test() -> None:
+    parsed = parse_english_term("pin noun")
+    assert parsed.raw == "pin noun"
+    assert parsed.word == "pin"
+    assert parsed.requested_pos == "noun"
+
+    parsed = parse_english_term("pin verb")
+    assert parsed.raw == "pin verb"
+    assert parsed.word == "pin"
+    assert parsed.requested_pos == "verb"
+
+    parsed = parse_english_term("rose")
+    assert parsed.raw == "rose"
+    assert parsed.word == "rose"
+    assert parsed.requested_pos == ""
+
+    assert _normalize_url("/media/english/uk_pron/u/ukr/ukroo/ukrooke025.mp3") == (
+        "https://dictionary.cambridge.org/media/english/uk_pron/u/ukr/ukroo/ukrooke025.mp3"
+    )
+    assert _is_candidate_dictionary_image_url(
+        "https://dictionary.cambridge.org/images/full/rose_noun_002_32331.jpg"
+    )
+    assert not _is_candidate_dictionary_image_url(
+        "https://dictionary.cambridge.org/external/images/og-image.png"
+    )
+    assert not _is_candidate_dictionary_image_url(
+        "https://www.ldoceonline.com/external/images/logo.svg"
+    )
+    assert not _is_candidate_dictionary_image_url(
+        "https://www.ldoceonline.com/media/english/illustration/banner_ad.jpg"
+    )
+    assert is_cross_reference_definition("past simple of rise")
+
+
 def create_deck_apkg(
     deck_name: str,
     output_apkg: Path,
     cards: List[BuiltCard],
     media_files: Iterable[Path],
 ) -> None:
+    if genanki is None:
+        raise RuntimeError("genanki is not installed; install project requirements to generate .apkg files.")
     deck_id = stable_anki_id(f"deck::{deck_name}")
     model_id = stable_anki_id("model::anki_batch_generator::basic_v2")
 
@@ -1893,7 +2759,7 @@ ul {
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate or extend an Anki deck from a JSON array.")
-    parser.add_argument("--mode", required=True, choices=sorted(SUPPORTED_MODES))
+    parser.add_argument("--mode", default="", choices=[""] + sorted(SUPPORTED_MODES))
     parser.add_argument(
         "--terms-json",
         default="",
@@ -1910,7 +2776,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--hint", default="", help="Optional shared hint applied to all items.")
     parser.add_argument("--tags", nargs="*", default=[], help="Optional extra tags.")
-    parser.add_argument("--deck-name", required=True, help="Use the same deck name as the existing deck to extend it.")
+    parser.add_argument("--deck-name", default="", help="Use the same deck name as the existing deck to extend it.")
     parser.add_argument("--output", default="anki_batch_output.apkg", help="Output .apkg path.")
     parser.add_argument("--preview-json", default="anki_batch_preview.json", help="Preview JSON path.")
     parser.add_argument("--cache-path", default="anki_batch_cache.json", help="LLM cache JSON path.")
@@ -1946,18 +2812,32 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_SLEEP,
         help="Sleep seconds between items. Default is intentionally higher to reduce rate spikes.",
     )
+    parser.add_argument(
+        "--dict-test-only",
+        action="store_true",
+        help="Only fetch and preview English dictionary fields; do not call OpenAI or generate an .apkg.",
+    )
+    parser.add_argument(
+        "--self-test",
+        action="store_true",
+        help="Run lightweight pure-function self-tests and exit.",
+    )
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
 
-    api_key = resolve_openai_api_key(args.openai_api_key)
-    if not api_key:
-        print(
-            "ERROR: OpenAI API key is missing. Set --openai-api-key, or OPENAI_API_KEY, or create "
-            f"{LOCAL_OPENAI_KEY_FILE} (one line, not committed to git)."
-        )
+    if args.self_test:
+        run_self_test()
+        print("Self-test passed.")
+        return 0
+
+    if not args.mode:
+        print("ERROR: --mode is required unless --self-test is used.")
+        return 1
+    if not args.deck_name:
+        print("ERROR: --deck-name is required unless --self-test is used.")
         return 1
 
     if not args.terms_json and not args.terms_file:
@@ -1988,6 +2868,25 @@ def main() -> int:
     preview_json = Path(args.preview_json).expanduser().resolve()
     cache_path = Path(args.cache_path).expanduser().resolve()
     media_dir = Path(args.media_dir).expanduser().resolve()
+
+    if args.dict_test_only:
+        if args.mode != "en_word":
+            print("ERROR: --dict-test-only is only supported with --mode en_word.")
+            return 1
+        run_dictionary_test_only(items, preview_json)
+        print(f"\nDictionary preview JSON: {preview_json}")
+        return 0
+
+    api_key = resolve_openai_api_key(args.openai_api_key)
+    if not api_key:
+        print(
+            "ERROR: OpenAI API key is missing. Set --openai-api-key, or OPENAI_API_KEY, or create "
+            f"{LOCAL_OPENAI_KEY_FILE} (one line, not committed to git)."
+        )
+        return 1
+    if OpenAI is None:
+        print("ERROR: openai package is not installed. Install project requirements to generate cards.")
+        return 1
 
     base_url = resolve_openai_base_url(args.openai_base_url)
     if base_url:
