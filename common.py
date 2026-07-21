@@ -314,16 +314,17 @@ def parse_english_term(term: str) -> ParsedEnglishTerm:
     raw = (term or "").strip()
     if not raw:
         return ParsedEnglishTerm(raw="", word="", requested_pos="")
-    parts = raw.split()
-    requested_pos = normalize_pos_tag(parts[-1]) if parts else ""
-    if requested_pos and len(parts) >= 2:
-        return ParsedEnglishTerm(
-            raw=raw,
-            word=" ".join(parts[:-1]).strip(),
-            requested_pos=requested_pos,
-        )
-    return ParsedEnglishTerm(raw=raw, word=strip_pos_labels_from_term(raw) or raw, requested_pos="")
 
+    tags = extract_pos_tags(raw)
+    requested_pos = tags[-1] if tags else ""
+
+    word = strip_pos_labels_from_term(raw) or raw
+
+    return ParsedEnglishTerm(
+        raw=raw,
+        word=word,
+        requested_pos=requested_pos,
+    )
 
 def extract_pos_tags(text: str) -> List[str]:
     tags: List[str] = []
