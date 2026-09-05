@@ -1,0 +1,720 @@
+{
+  "nail noun": {
+    "parse": {
+      "raw": "nail noun",
+      "word": "nail",
+      "requested_pos": "noun",
+      "requested_sense_index": null
+    },
+    "provider_entries": [
+      {
+        "source": "cambridge",
+        "word": "nail",
+        "requested_pos": "noun",
+        "actual_pos": "noun",
+        "ipa_uk": "",
+        "audio_uk_url": "",
+        "definition": "a small, thin piece of metal with one pointed end and one flat end that you hit into something with a hammer, especially in order to fasten or join it to something else:",
+        "image_url": "https://dictionary.cambridge.org/images/full/nail_noun_002_24408.jpg?version=6.0.80",
+        "image_alt": "",
+        "sense_id": "cambridge:nail:noun:1",
+        "ipa_source": "",
+        "audio_source": "",
+        "definition_source": "cambridge",
+        "image_source": "cambridge"
+      },
+      {
+        "source": "oxford",
+        "word": "nail",
+        "requested_pos": "noun",
+        "actual_pos": "noun",
+        "ipa_uk": "/neɪl/",
+        "audio_uk_url": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/n/nai/nail_/nail__gb_1.mp3",
+        "definition": "the thin hard layer covering the outer tip of the fingers or toes",
+        "image_url": "",
+        "image_alt": "Oxford Learners Dictionaries",
+        "sense_id": "oxford:nail:noun:0",
+        "ipa_source": "oxford",
+        "audio_source": "oxford",
+        "definition_source": "oxford",
+        "image_source": ""
+      },
+      {
+        "source": "longman",
+        "word": "nail",
+        "requested_pos": "noun",
+        "actual_pos": "noun",
+        "ipa_uk": "neɪl",
+        "audio_uk_url": "",
+        "definition": "a thin pointed piece of metal with a flat top, which you hit into a surface with a hammer, for example to join things together or to hang something on",
+        "image_url": "",
+        "image_alt": "Image of nail",
+        "sense_id": "longman:nail:noun:1",
+        "ipa_source": "longman",
+        "audio_source": "",
+        "definition_source": "longman",
+        "image_source": ""
+      }
+    ],
+    "merged": {
+      "source": "longman",
+      "word": "nail",
+      "requested_pos": "noun",
+      "actual_pos": "noun",
+      "ipa_uk": "/neɪl/",
+      "audio_uk_url": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/n/nai/nail_/nail__gb_1.mp3",
+      "definition": "a thin pointed piece of metal with a flat top, which you hit into a surface with a hammer, for example to join things together or to hang something on",
+      "image_url": "https://dictionary.cambridge.org/images/full/nail_noun_002_24408.jpg?version=6.0.80",
+      "image_alt": "",
+      "sense_id": "longman:nail:noun:1",
+      "ipa_source": "oxford",
+      "audio_source": "oxford",
+      "definition_source": "longman",
+      "image_source": "cambridge"
+    },
+    "preview": {
+      "raw": "nail noun",
+      "word": "nail",
+      "requested_pos": "noun",
+      "actual_pos": "noun",
+      "definition": "a thin pointed piece of metal with a flat top, which you hit into a surface with a hammer, for example to join things together or to hang something on",
+      "definition_source": "longman",
+      "ipa_uk": "/neɪl/",
+      "ipa_source": "oxford",
+      "audio_uk_url": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/n/nai/nail_/nail__gb_1.mp3",
+      "audio_source": "oxford",
+      "image_url": "https://dictionary.cambridge.org/images/full/nail_noun_002_24408.jpg?version=6.0.80",
+      "image_source": "cambridge",
+      "sense_id": "longman:nail:noun:1",
+      "provider_entries": [
+        {
+          "source": "cambridge",
+          "actual_pos": "noun",
+          "definition": "a small, thin piece of metal with one pointed end and one flat end that you hit into something with a hammer, especially in order to fasten or join it to something else:",
+          "ipa_uk": "",
+          "audio_uk_url": "",
+          "image_url": "https://dictionary.cambridge.org/images/full/nail_noun_002_24408.jpg?version=6.0.80",
+          "sense_id": "cambridge:nail:noun:1"
+        },
+        {
+          "source": "oxford",
+          "actual_pos": "noun",
+          "definition": "the thin hard layer covering the outer tip of the fingers or toes",
+          "ipa_uk": "/neɪl/",
+          "audio_uk_url": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/n/nai/nail_/nail__gb_1.mp3",
+          "image_url": "",
+          "sense_id": "oxford:nail:noun:0"
+        },
+        {
+          "source": "longman",
+          "actual_pos": "noun",
+          "definition": "a thin pointed piece of metal with a flat top, which you hit into a surface with a hammer, for example to join things together or to hang something on",
+          "ipa_uk": "neɪl",
+          "audio_uk_url": "",
+          "image_url": "",
+          "sense_id": "longman:nail:noun:1"
+        }
+      ]
+    },
+    "requests": [
+      {
+        "url": "https://dictionary.cambridge.org/dictionary/english/nail",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://www.oxfordlearnersdictionaries.com/definition/english/nail",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://www.ldoceonline.com/dictionary/nail",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://dictionary.cambridge.org/dictionary/english/nail",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://www.oxfordlearnersdictionaries.com/definition/english/nail",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://www.ldoceonline.com/dictionary/nail",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      }
+    ]
+  },
+  "nail verb": {
+    "parse": {
+      "raw": "nail verb",
+      "word": "nail",
+      "requested_pos": "verb",
+      "requested_sense_index": null
+    },
+    "provider_entries": [
+      {
+        "source": "cambridge",
+        "word": "nail",
+        "requested_pos": "verb",
+        "actual_pos": "verb",
+        "ipa_uk": "",
+        "audio_uk_url": "",
+        "definition": "to fasten something with nails:",
+        "image_url": "",
+        "image_alt": "",
+        "sense_id": "cambridge:nail:verb:2",
+        "ipa_source": "",
+        "audio_source": "",
+        "definition_source": "cambridge",
+        "image_source": ""
+      },
+      {
+        "source": "oxford",
+        "word": "nail",
+        "requested_pos": "verb",
+        "actual_pos": "verb",
+        "ipa_uk": "/neɪl/",
+        "audio_uk_url": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/n/nai/nail_/nail__gb_1.mp3",
+        "definition": "to fasten something to something with a nail or nails",
+        "image_url": "",
+        "image_alt": "Oxford Learners Dictionaries",
+        "sense_id": "oxford:nail_2:verb:2",
+        "ipa_source": "oxford",
+        "audio_source": "oxford",
+        "definition_source": "oxford",
+        "image_source": ""
+      },
+      {
+        "source": "longman",
+        "word": "nail",
+        "requested_pos": "verb",
+        "actual_pos": "verb",
+        "ipa_uk": "neɪl",
+        "audio_uk_url": "",
+        "definition": "to fasten something to something else with nails",
+        "image_url": "",
+        "image_alt": "Image of float",
+        "sense_id": "longman:nail:verb:2",
+        "ipa_source": "longman",
+        "audio_source": "",
+        "definition_source": "longman",
+        "image_source": ""
+      }
+    ],
+    "merged": {
+      "source": "longman",
+      "word": "nail",
+      "requested_pos": "verb",
+      "actual_pos": "verb",
+      "ipa_uk": "/neɪl/",
+      "audio_uk_url": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/n/nai/nail_/nail__gb_1.mp3",
+      "definition": "to fasten something to something else with nails",
+      "image_url": "",
+      "image_alt": "",
+      "sense_id": "longman:nail:verb:2",
+      "ipa_source": "oxford",
+      "audio_source": "oxford",
+      "definition_source": "longman",
+      "image_source": ""
+    },
+    "preview": {
+      "raw": "nail verb",
+      "word": "nail",
+      "requested_pos": "verb",
+      "actual_pos": "verb",
+      "definition": "to fasten something to something else with nails",
+      "definition_source": "longman",
+      "ipa_uk": "/neɪl/",
+      "ipa_source": "oxford",
+      "audio_uk_url": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/n/nai/nail_/nail__gb_1.mp3",
+      "audio_source": "oxford",
+      "image_url": "",
+      "image_source": "",
+      "sense_id": "longman:nail:verb:2",
+      "provider_entries": [
+        {
+          "source": "cambridge",
+          "actual_pos": "verb",
+          "definition": "to fasten something with nails:",
+          "ipa_uk": "",
+          "audio_uk_url": "",
+          "image_url": "",
+          "sense_id": "cambridge:nail:verb:2"
+        },
+        {
+          "source": "oxford",
+          "actual_pos": "verb",
+          "definition": "to fasten something to something with a nail or nails",
+          "ipa_uk": "/neɪl/",
+          "audio_uk_url": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/n/nai/nail_/nail__gb_1.mp3",
+          "image_url": "",
+          "sense_id": "oxford:nail_2:verb:2"
+        },
+        {
+          "source": "longman",
+          "actual_pos": "verb",
+          "definition": "to fasten something to something else with nails",
+          "ipa_uk": "neɪl",
+          "audio_uk_url": "",
+          "image_url": "",
+          "sense_id": "longman:nail:verb:2"
+        }
+      ]
+    },
+    "requests": [
+      {
+        "url": "https://dictionary.cambridge.org/dictionary/english/nail",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://www.oxfordlearnersdictionaries.com/definition/english/nail",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://www.oxfordlearnersdictionaries.com/definition/english/nail_1",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://www.oxfordlearnersdictionaries.com/definition/english/nail_2",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://www.ldoceonline.com/dictionary/nail",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://dictionary.cambridge.org/dictionary/english/nail",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://www.oxfordlearnersdictionaries.com/definition/english/nail",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://www.oxfordlearnersdictionaries.com/definition/english/nail_1",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://www.oxfordlearnersdictionaries.com/definition/english/nail_2",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://www.ldoceonline.com/dictionary/nail",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      }
+    ]
+  },
+  "rose": {
+    "parse": {
+      "raw": "rose",
+      "word": "rose",
+      "requested_pos": "",
+      "requested_sense_index": null
+    },
+    "provider_entries": [
+      {
+        "source": "cambridge",
+        "word": "rose",
+        "requested_pos": "",
+        "actual_pos": "noun",
+        "ipa_uk": "",
+        "audio_uk_url": "",
+        "definition": "a garden plant with thorns on its stems and pleasant-smelling flowers, or a flower from this plant:",
+        "image_url": "https://dictionary.cambridge.org/images/full/rose_noun_002_31533.jpg?version=6.0.80",
+        "image_alt": "",
+        "sense_id": "cambridge:rose:noun:2",
+        "ipa_source": "",
+        "audio_source": "",
+        "definition_source": "cambridge",
+        "image_source": "cambridge"
+      },
+      {
+        "source": "oxford",
+        "word": "rose",
+        "requested_pos": "",
+        "actual_pos": "noun",
+        "ipa_uk": "/rəʊz/",
+        "audio_uk_url": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/r/ros/rose_/rose__gb_3.mp3",
+        "definition": "a flower with a sweet smell that grows on a bush with thorns",
+        "image_url": "",
+        "image_alt": "Oxford Learners Dictionaries",
+        "sense_id": "oxford:rose:noun:0",
+        "ipa_source": "oxford",
+        "audio_source": "oxford",
+        "definition_source": "oxford",
+        "image_source": ""
+      },
+      {
+        "source": "longman",
+        "word": "rose",
+        "requested_pos": "",
+        "actual_pos": "noun",
+        "ipa_uk": "rəʊz",
+        "audio_uk_url": "",
+        "definition": "a flower that often has a pleasant smell, and is usually red, pink, white, or yellow, or the bush that this flower grows on",
+        "image_url": "",
+        "image_alt": "Image of rose",
+        "sense_id": "longman:rose:noun:1",
+        "ipa_source": "longman",
+        "audio_source": "",
+        "definition_source": "longman",
+        "image_source": ""
+      }
+    ],
+    "merged": {
+      "source": "longman",
+      "word": "rose",
+      "requested_pos": "",
+      "actual_pos": "noun",
+      "ipa_uk": "/rəʊz/",
+      "audio_uk_url": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/r/ros/rose_/rose__gb_3.mp3",
+      "definition": "a flower that often has a pleasant smell, and is usually red, pink, white, or yellow, or the bush that this flower grows on",
+      "image_url": "https://dictionary.cambridge.org/images/full/rose_noun_002_31533.jpg?version=6.0.80",
+      "image_alt": "",
+      "sense_id": "longman:rose:noun:1",
+      "ipa_source": "oxford",
+      "audio_source": "oxford",
+      "definition_source": "longman",
+      "image_source": "cambridge"
+    },
+    "preview": {
+      "raw": "rose",
+      "word": "rose",
+      "requested_pos": "",
+      "actual_pos": "noun",
+      "definition": "a flower that often has a pleasant smell, and is usually red, pink, white, or yellow, or the bush that this flower grows on",
+      "definition_source": "longman",
+      "ipa_uk": "/rəʊz/",
+      "ipa_source": "oxford",
+      "audio_uk_url": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/r/ros/rose_/rose__gb_3.mp3",
+      "audio_source": "oxford",
+      "image_url": "https://dictionary.cambridge.org/images/full/rose_noun_002_31533.jpg?version=6.0.80",
+      "image_source": "cambridge",
+      "sense_id": "longman:rose:noun:1",
+      "provider_entries": [
+        {
+          "source": "cambridge",
+          "actual_pos": "noun",
+          "definition": "a garden plant with thorns on its stems and pleasant-smelling flowers, or a flower from this plant:",
+          "ipa_uk": "",
+          "audio_uk_url": "",
+          "image_url": "https://dictionary.cambridge.org/images/full/rose_noun_002_31533.jpg?version=6.0.80",
+          "sense_id": "cambridge:rose:noun:2"
+        },
+        {
+          "source": "oxford",
+          "actual_pos": "noun",
+          "definition": "a flower with a sweet smell that grows on a bush with thorns",
+          "ipa_uk": "/rəʊz/",
+          "audio_uk_url": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/r/ros/rose_/rose__gb_3.mp3",
+          "image_url": "",
+          "sense_id": "oxford:rose:noun:0"
+        },
+        {
+          "source": "longman",
+          "actual_pos": "noun",
+          "definition": "a flower that often has a pleasant smell, and is usually red, pink, white, or yellow, or the bush that this flower grows on",
+          "ipa_uk": "rəʊz",
+          "audio_uk_url": "",
+          "image_url": "",
+          "sense_id": "longman:rose:noun:1"
+        }
+      ]
+    },
+    "requests": [
+      {
+        "url": "https://dictionary.cambridge.org/dictionary/english/rose",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://www.oxfordlearnersdictionaries.com/definition/english/rose",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://www.ldoceonline.com/dictionary/rose",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://dictionary.cambridge.org/dictionary/english/rose",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://www.oxfordlearnersdictionaries.com/definition/english/rose",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://www.ldoceonline.com/dictionary/rose",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      }
+    ]
+  },
+  "play hooky": {
+    "parse": {
+      "raw": "play hooky",
+      "word": "play hooky",
+      "requested_pos": "",
+      "requested_sense_index": null
+    },
+    "provider_entries": [
+      {
+        "source": "longman",
+        "word": "play hooky",
+        "requested_pos": "",
+        "actual_pos": "",
+        "ipa_uk": "",
+        "audio_uk_url": "",
+        "definition": "to stay away from school without permission",
+        "image_url": "",
+        "image_alt": "",
+        "sense_id": "longman:play-hooky:entry:1",
+        "ipa_source": "",
+        "audio_source": "",
+        "definition_source": "longman",
+        "image_source": ""
+      }
+    ],
+    "merged": {
+      "source": "longman",
+      "word": "play hooky",
+      "requested_pos": "",
+      "actual_pos": "",
+      "ipa_uk": "",
+      "audio_uk_url": "",
+      "definition": "to stay away from school without permission",
+      "image_url": "",
+      "image_alt": "",
+      "sense_id": "longman:play-hooky:entry:1",
+      "ipa_source": "",
+      "audio_source": "",
+      "definition_source": "longman",
+      "image_source": ""
+    },
+    "preview": {
+      "raw": "play hooky",
+      "word": "play hooky",
+      "requested_pos": "",
+      "actual_pos": "",
+      "definition": "to stay away from school without permission",
+      "definition_source": "longman",
+      "ipa_uk": "",
+      "ipa_source": "",
+      "audio_uk_url": "",
+      "audio_source": "",
+      "image_url": "",
+      "image_source": "",
+      "sense_id": "longman:play-hooky:entry:1",
+      "provider_entries": [
+        {
+          "source": "longman",
+          "actual_pos": "",
+          "definition": "to stay away from school without permission",
+          "ipa_uk": "",
+          "audio_uk_url": "",
+          "image_url": "",
+          "sense_id": "longman:play-hooky:entry:1"
+        }
+      ]
+    },
+    "requests": [
+      {
+        "url": "https://dictionary.cambridge.org/dictionary/english/play-hooky",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://www.oxfordlearnersdictionaries.com/definition/english/play-hooky",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://www.oxfordlearnersdictionaries.com/definition/english/play-hooky_1",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://www.oxfordlearnersdictionaries.com/definition/english/play-hooky_2",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://www.oxfordlearnersdictionaries.com/definition/english/play-hooky_3",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://www.oxfordlearnersdictionaries.com/definition/english/play-hooky_4",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://www.ldoceonline.com/dictionary/play-hooky",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://dictionary.cambridge.org/dictionary/english/play-hooky",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://www.oxfordlearnersdictionaries.com/definition/english/play-hooky",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://www.oxfordlearnersdictionaries.com/definition/english/play-hooky_1",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://www.oxfordlearnersdictionaries.com/definition/english/play-hooky_2",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://www.oxfordlearnersdictionaries.com/definition/english/play-hooky_3",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://www.oxfordlearnersdictionaries.com/definition/english/play-hooky_4",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      },
+      {
+        "url": "https://www.ldoceonline.com/dictionary/play-hooky",
+        "timeout": 12,
+        "headers": {
+          "User-Agent": "anki-batch-generator/2.0"
+        },
+        "stream": false
+      }
+    ]
+  }
+}

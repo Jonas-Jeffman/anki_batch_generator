@@ -1,0 +1,180 @@
+{
+  "cambridge": {
+    "nail": {
+      "sense_ids": [
+        "ID_00021248_01",
+        "ID_00021248_02",
+        "ID_00021248_05",
+        "ID_00021248_06",
+        "ID_00021248_15",
+        "ID_00021248_16"
+      ],
+      "pos": [
+        "noun",
+        "noun",
+        "verb",
+        "verb",
+        "verb",
+        "verb"
+      ],
+      "example_counts": [
+        3,
+        3,
+        3,
+        1,
+        2,
+        2
+      ],
+      "image_urls": [
+        "https://dictionary.cambridge.org/images/full/nail_noun_002_24408.jpg?version=6.0.80",
+        "https://dictionary.cambridge.org/images/full/finger_noun_002_13904.jpg?version=6.0.80"
+      ]
+    },
+    "trunk": {
+      "sense_ids": [
+        "ID_00033966_01",
+        "ID_00033966_02",
+        "ID_00033966_08",
+        "ID_00033966_03",
+        "ID_00033966_04",
+        "ID_00033966_06",
+        "ID_00033966_07",
+        "ID_00033966_05"
+      ],
+      "pos": [
+        "noun",
+        "noun",
+        "noun",
+        "noun",
+        "noun",
+        "noun",
+        "noun",
+        "noun"
+      ],
+      "example_counts": [
+        0,
+        1,
+        1,
+        0,
+        0,
+        2,
+        0,
+        0
+      ],
+      "image_urls": [
+        "https://dictionary.cambridge.org/images/full/trunk_noun_002_39163.jpg?version=6.0.80",
+        "https://dictionary.cambridge.org/images/full/trunk_noun_002_39164.jpg?version=6.0.80",
+        "https://dictionary.cambridge.org/images/full/trunk_noun_002_39166.jpg?version=6.0.80",
+        "https://dictionary.cambridge.org/images/full/trunk_noun_002_39167.jpg?version=6.0.80",
+        "https://dictionary.cambridge.org/images/full/trunk_noun_004_2667.jpg?version=6.0.80",
+        "https://dictionary.cambridge.org/images/full/trunk_noun_003_02456.jpg?version=6.0.80"
+      ]
+    }
+  },
+  "longman": {
+    "nail": {
+      "sense_ids": [
+        "nail__1",
+        "nail__2",
+        "nail__7",
+        "nail__8",
+        "nail__9",
+        "nail__10",
+        "nail__15",
+        "nail__17"
+      ],
+      "pos": [
+        "noun",
+        "noun",
+        "verb",
+        "verb",
+        "verb",
+        "verb",
+        "verb",
+        "noun"
+      ],
+      "example_counts": [
+        2,
+        4,
+        3,
+        2,
+        1,
+        1,
+        1,
+        1
+      ],
+      "image_urls": []
+    },
+    "trunk": {
+      "sense_ids": [
+        "trunk__1",
+        "trunk__2",
+        "trunk__3",
+        "trunk__4",
+        "trunk__5",
+        "trunk__6"
+      ],
+      "pos": [
+        "noun",
+        "noun",
+        "noun",
+        "noun",
+        "noun",
+        "noun"
+      ],
+      "example_counts": [
+        2,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      "image_urls": []
+    }
+  },
+  "oxford": {
+    "nail": {
+      "sense_ids": [
+        "nail_sng_1",
+        "nail_sng_2"
+      ],
+      "pos": [
+        "noun",
+        "noun"
+      ],
+      "example_counts": [
+        2,
+        2
+      ],
+      "image_urls": []
+    },
+    "trunk": {
+      "sense_ids": [
+        "trunk_sng_1",
+        "trunk_sng_2",
+        "trunk_sng_3",
+        "trunk_sng_4",
+        "trunk_sng_5",
+        "trunk_sng_6"
+      ],
+      "pos": [
+        "noun",
+        "noun",
+        "noun",
+        "noun",
+        "noun",
+        "noun"
+      ],
+      "example_counts": [
+        1,
+        2,
+        0,
+        0,
+        2,
+        0
+      ],
+      "image_urls": []
+    }
+  }
+}

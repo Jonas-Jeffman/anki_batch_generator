@@ -1,0 +1,44 @@
+{
+  "deck_id": 79127873,
+  "expected_deck_id": 79127873,
+  "deck_name": "Regression::Deck",
+  "model": {
+    "model_id": 1488503431,
+    "name": "BatchAIGeneratedBasicModelV2",
+    "fields": [
+      {
+        "name": "Front"
+      },
+      {
+        "name": "Back"
+      }
+    ],
+    "templates": [
+      {
+        "name": "Card 1",
+        "qfmt": "{{Front}}",
+        "afmt": "{{FrontSide}}<hr id=\"answer\">{{Back}}"
+      }
+    ],
+    "css": "\n.card {\n  font-family: Arial, sans-serif;\n  font-size: 20px;\n  text-align: left;\n  color: #111;\n  background-color: #fff;\n  line-height: 1.6;\n}\nul {\n  margin-top: 4px;\n  margin-bottom: 8px;\n}\n"
+  },
+  "notes": [
+    {
+      "fields": [
+        "<b>rose</b>",
+        "<b>Definition (EN):</b> a flower"
+      ],
+      "tags": [
+        "english",
+        "vocab"
+      ],
+      "guid": "08c52d4685f8fc48b4c1"
+    }
+  ],
+  "expected_guid": "08c52d4685f8fc48b4c1",
+  "media_basenames": [
+    "audio.mp3",
+    "image.jpg"
+  ],
+  "output_basename": "deck.apkg"
+}

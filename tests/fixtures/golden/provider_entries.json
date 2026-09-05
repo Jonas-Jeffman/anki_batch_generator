@@ -1,0 +1,918 @@
+{
+  "nail": {
+    "cambridge": [
+      {
+        "source": "cambridge",
+        "dataset": "cald4",
+        "native_id": "",
+        "word": "nail",
+        "pos": "noun",
+        "pronunciation": {
+          "source": "cambridge",
+          "pos": "noun",
+          "ipa_uk": "neɪl",
+          "audio_uk_url": "https://dictionary.cambridge.org/media/english/uk_pron/u/ukm/ukmyt/ukmyth_020.mp3",
+          "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) .uk.dpron-i"
+        },
+        "senses": [
+          {
+            "source": "cambridge",
+            "native_id": "ID_00021248_01",
+            "pos": "noun",
+            "definition": "a small, thin piece of metal with one pointed end and one flat end that you hit into something with a hammer, especially in order to fasten or join it to something else:",
+            "examples": [
+              {
+                "text": "a three-inch nail",
+                "audio_url": "",
+                "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00021248_01\"] .eg.deg:nth-of-type(1)"
+              },
+              {
+                "text": "I stepped on a nail sticking out of the floorboards.",
+                "audio_url": "",
+                "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00021248_01\"] .eg.deg:nth-of-type(2)"
+              },
+              {
+                "text": "Hammer a nail into the wall and we'll hang the mirror from it.",
+                "audio_url": "",
+                "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00021248_01\"] .eg.deg:nth-of-type(3)"
+              }
+            ],
+            "image_url": "https://dictionary.cambridge.org/images/full/nail_noun_002_24408.jpg?version=6.0.80",
+            "image_alt": "picture of nail",
+            "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00021248_01\"]",
+            "definition_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00021248_01\"] .def.ddef_d",
+            "image_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00021248_01\"] + div.dimg amp-img"
+          },
+          {
+            "source": "cambridge",
+            "native_id": "ID_00021248_02",
+            "pos": "noun",
+            "definition": "a thin, hard area that covers the upper side of the end of each finger and each toe:",
+            "examples": [
+              {
+                "text": "Stop biting your nails!",
+                "audio_url": "",
+                "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00021248_02\"] .eg.deg:nth-of-type(1)"
+              },
+              {
+                "text": "nail clippers",
+                "audio_url": "",
+                "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00021248_02\"] .eg.deg:nth-of-type(2)"
+              },
+              {
+                "text": "a nail file",
+                "audio_url": "",
+                "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00021248_02\"] .eg.deg:nth-of-type(3)"
+              }
+            ],
+            "image_url": "https://dictionary.cambridge.org/images/full/finger_noun_002_13904.jpg?version=6.0.80",
+            "image_alt": "picture of nail",
+            "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00021248_02\"]",
+            "definition_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00021248_02\"] .def.ddef_d",
+            "image_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00021248_02\"] + div.dimg amp-img"
+          }
+        ],
+        "cross_reference_ids": [],
+        "other_sense_ids": [],
+        "idiom_ids": [],
+        "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1)"
+      },
+      {
+        "source": "cambridge",
+        "dataset": "cald4",
+        "native_id": "",
+        "word": "nail",
+        "pos": "verb",
+        "pronunciation": {
+          "source": "cambridge",
+          "pos": "verb",
+          "ipa_uk": "neɪl",
+          "audio_uk_url": "https://dictionary.cambridge.org/media/english/uk_pron/u/ukm/ukmyt/ukmyth_020.mp3",
+          "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(2) .uk.dpron-i"
+        },
+        "senses": [
+          {
+            "source": "cambridge",
+            "native_id": "ID_00021248_05",
+            "pos": "verb",
+            "definition": "to fasten something with nails:",
+            "examples": [
+              {
+                "text": "She had nailed a small shelf to the door.",
+                "audio_url": "",
+                "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(2) > div.def-block[data-wl-senseid=\"ID_00021248_05\"] .eg.deg:nth-of-type(1)"
+              },
+              {
+                "text": "A notice had been nailed up on the wall.",
+                "audio_url": "",
+                "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(2) > div.def-block[data-wl-senseid=\"ID_00021248_05\"] .eg.deg:nth-of-type(2)"
+              },
+              {
+                "text": "The lid of the box had been nailed down.",
+                "audio_url": "",
+                "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(2) > div.def-block[data-wl-senseid=\"ID_00021248_05\"] .eg.deg:nth-of-type(3)"
+              }
+            ],
+            "image_url": "",
+            "image_alt": "",
+            "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(2) > div.def-block[data-wl-senseid=\"ID_00021248_05\"]",
+            "definition_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(2) > div.def-block[data-wl-senseid=\"ID_00021248_05\"] .def.ddef_d",
+            "image_dom_path": ""
+          },
+          {
+            "source": "cambridge",
+            "native_id": "ID_00021248_06",
+            "pos": "verb",
+            "definition": "to catch someone, especially when they are doing something wrong, or to make it clear that they are guilty:",
+            "examples": [
+              {
+                "text": "The police had been trying to nail those guys for months.",
+                "audio_url": "",
+                "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(2) > div.def-block[data-wl-senseid=\"ID_00021248_06\"] .eg.deg:nth-of-type(1)"
+              }
+            ],
+            "image_url": "",
+            "image_alt": "",
+            "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(2) > div.def-block[data-wl-senseid=\"ID_00021248_06\"]",
+            "definition_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(2) > div.def-block[data-wl-senseid=\"ID_00021248_06\"] .def.ddef_d",
+            "image_dom_path": ""
+          },
+          {
+            "source": "cambridge",
+            "native_id": "ID_00021248_15",
+            "pos": "verb",
+            "definition": "to do something successfully:",
+            "examples": [
+              {
+                "text": "She nailed her audition and got the lead part in the musical.",
+                "audio_url": "",
+                "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(2) > div.def-block[data-wl-senseid=\"ID_00021248_15\"] .eg.deg:nth-of-type(1)"
+              },
+              {
+                "text": "You totally nailed it!",
+                "audio_url": "",
+                "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(2) > div.def-block[data-wl-senseid=\"ID_00021248_15\"] .eg.deg:nth-of-type(2)"
+              }
+            ],
+            "image_url": "",
+            "image_alt": "",
+            "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(2) > div.def-block[data-wl-senseid=\"ID_00021248_15\"]",
+            "definition_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(2) > div.def-block[data-wl-senseid=\"ID_00021248_15\"] .def.ddef_d",
+            "image_dom_path": ""
+          },
+          {
+            "source": "cambridge",
+            "native_id": "ID_00021248_16",
+            "pos": "verb",
+            "definition": "to hit someone or something with force:",
+            "examples": [
+              {
+                "text": "I got nailed in the head by someone's elbow.",
+                "audio_url": "",
+                "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(2) > div.def-block[data-wl-senseid=\"ID_00021248_16\"] .eg.deg:nth-of-type(1)"
+              },
+              {
+                "text": "A piece of wood flew off and nailed him in the eye.",
+                "audio_url": "",
+                "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(2) > div.def-block[data-wl-senseid=\"ID_00021248_16\"] .eg.deg:nth-of-type(2)"
+              }
+            ],
+            "image_url": "",
+            "image_alt": "",
+            "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(2) > div.def-block[data-wl-senseid=\"ID_00021248_16\"]",
+            "definition_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(2) > div.def-block[data-wl-senseid=\"ID_00021248_16\"] .def.ddef_d",
+            "image_dom_path": ""
+          }
+        ],
+        "cross_reference_ids": [],
+        "other_sense_ids": [],
+        "idiom_ids": [],
+        "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(2)"
+      }
+    ],
+    "longman": [
+      {
+        "source": "longman",
+        "dataset": "ldoce",
+        "native_id": "",
+        "word": "nail",
+        "pos": "noun",
+        "pronunciation": {
+          "source": "longman",
+          "pos": "noun",
+          "ipa_uk": "neɪl",
+          "audio_uk_url": "https://www.ldoceonline.com/media/english/breProns/brelasdenail.mp3?version=1.2.91",
+          "dom_path": "span.ldoceEntry:nth-of-type(1) .PRON"
+        },
+        "senses": [
+          {
+            "source": "longman",
+            "native_id": "nail__1",
+            "pos": "noun",
+            "definition": "a thin pointed piece of metal with a flat top, which you hit into a surface with a hammer , for example to join things together or to hang something on",
+            "examples": [
+              {
+                "text": "The key was hanging on a nail by the door.",
+                "audio_url": "https://www.ldoceonline.com/media/english/exaProns/p008-001714242.mp3?version=1.2.91",
+                "dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"nail__1\"] .EXAMPLE:nth-of-type(1)"
+              },
+              {
+                "text": "She hammered a nail into the wall.",
+                "audio_url": "https://www.ldoceonline.com/media/english/exaProns/p008-001714245.mp3?version=1.2.91",
+                "dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"nail__1\"] .EXAMPLE:nth-of-type(2)"
+              }
+            ],
+            "image_url": "",
+            "image_alt": "",
+            "dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"nail__1\"]",
+            "definition_dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"nail__1\"] > .DEF",
+            "image_dom_path": ""
+          },
+          {
+            "source": "longman",
+            "native_id": "nail__2",
+            "pos": "noun",
+            "definition": "your nails are the hard smooth layers on the ends of your fingers and toes",
+            "examples": [
+              {
+                "text": "I’ve broken my nail .",
+                "audio_url": "https://www.ldoceonline.com/media/english/exaProns/p008-000231691.mp3?version=1.2.91",
+                "dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"nail__2\"] .EXAMPLE:nth-of-type(1)"
+              },
+              {
+                "text": "Stop biting your nails !",
+                "audio_url": "https://www.ldoceonline.com/media/english/exaProns/p008-001714250.mp3?version=1.2.91",
+                "dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"nail__2\"] .EXAMPLE:nth-of-type(2)"
+              },
+              {
+                "text": "She sat painting her nails (= putting a coloured substance on them) .",
+                "audio_url": "https://www.ldoceonline.com/media/english/exaProns/p008-001714253.mp3?version=1.2.91",
+                "dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"nail__2\"] .EXAMPLE:nth-of-type(3)"
+              },
+              {
+                "text": "He still had dirt under his nails.",
+                "audio_url": "https://www.ldoceonline.com/media/english/exaProns/p008-001714257.mp3?version=1.2.91",
+                "dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"nail__2\"] .EXAMPLE:nth-of-type(4)"
+              }
+            ],
+            "image_url": "",
+            "image_alt": "",
+            "dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"nail__2\"]",
+            "definition_dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"nail__2\"] > .DEF",
+            "image_dom_path": ""
+          }
+        ],
+        "cross_reference_ids": [
+          "nail__3",
+          "nail__4",
+          "nail__5"
+        ],
+        "other_sense_ids": [],
+        "idiom_ids": [],
+        "dom_path": "span.ldoceEntry:nth-of-type(1)"
+      },
+      {
+        "source": "longman",
+        "dataset": "ldoce",
+        "native_id": "nail__6",
+        "word": "nail",
+        "pos": "verb",
+        "pronunciation": {
+          "source": "longman",
+          "pos": "verb",
+          "ipa_uk": "",
+          "audio_uk_url": "https://www.ldoceonline.com/media/english/breProns/brelasdenail.mp3?version=1.2.91",
+          "dom_path": "span.ldoceEntry[id=\"nail__6\"] .PRON"
+        },
+        "senses": [
+          {
+            "source": "longman",
+            "native_id": "nail__7",
+            "pos": "verb",
+            "definition": "to fasten something to something else with nails",
+            "examples": [
+              {
+                "text": "A sign saying ‘No Fishing’ had been nailed to the tree.",
+                "audio_url": "https://www.ldoceonline.com/media/english/exaProns/p008-000231734.mp3?version=1.2.91",
+                "dom_path": "span.ldoceEntry[id=\"nail__6\"] > span.Sense[id=\"nail__7\"] .EXAMPLE:nth-of-type(1)"
+              },
+              {
+                "text": "The lid was firmly nailed down.",
+                "audio_url": "https://www.ldoceonline.com/media/english/exaProns/p008-000231735.mp3?version=1.2.91",
+                "dom_path": "span.ldoceEntry[id=\"nail__6\"] > span.Sense[id=\"nail__7\"] .EXAMPLE:nth-of-type(2)"
+              },
+              {
+                "text": "The windows had been nailed up.",
+                "audio_url": "https://www.ldoceonline.com/media/english/exaProns/p008-001714288.mp3?version=1.2.91",
+                "dom_path": "span.ldoceEntry[id=\"nail__6\"] > span.Sense[id=\"nail__7\"] .EXAMPLE:nth-of-type(3)"
+              }
+            ],
+            "image_url": "",
+            "image_alt": "",
+            "dom_path": "span.ldoceEntry[id=\"nail__6\"] > span.Sense[id=\"nail__7\"]",
+            "definition_dom_path": "span.ldoceEntry[id=\"nail__6\"] > span.Sense[id=\"nail__7\"] > .DEF",
+            "image_dom_path": ""
+          },
+          {
+            "source": "longman",
+            "native_id": "nail__8",
+            "pos": "verb",
+            "definition": "to catch someone and prove that they are guilty of a crime or something bad",
+            "examples": [
+              {
+                "text": "It took us 10 years to nail the guy who killed our daughter.",
+                "audio_url": "https://www.ldoceonline.com/media/english/exaProns/p008-000231741.mp3?version=1.2.91",
+                "dom_path": "span.ldoceEntry[id=\"nail__6\"] > span.Sense[id=\"nail__8\"] .EXAMPLE:nth-of-type(1)"
+              },
+              {
+                "text": "The state police finally nailed him for fraud.",
+                "audio_url": "https://www.ldoceonline.com/media/english/exaProns/p008-000231744.mp3?version=1.2.91",
+                "dom_path": "span.ldoceEntry[id=\"nail__6\"] > span.Sense[id=\"nail__8\"] .EXAMPLE:nth-of-type(2)"
+              }
+            ],
+            "image_url": "",
+            "image_alt": "",
+            "dom_path": "span.ldoceEntry[id=\"nail__6\"] > span.Sense[id=\"nail__8\"]",
+            "definition_dom_path": "span.ldoceEntry[id=\"nail__6\"] > span.Sense[id=\"nail__8\"] > .DEF",
+            "image_dom_path": ""
+          },
+          {
+            "source": "longman",
+            "native_id": "nail__9",
+            "pos": "verb",
+            "definition": "if you nail something, you succeed in getting it, after a lot of time or effort",
+            "examples": [
+              {
+                "text": "She finally nailed her dream job.",
+                "audio_url": "https://www.ldoceonline.com/media/english/exaProns/p008-001714294.mp3?version=1.2.91",
+                "dom_path": "span.ldoceEntry[id=\"nail__6\"] > span.Sense[id=\"nail__9\"] .EXAMPLE:nth-of-type(1)"
+              }
+            ],
+            "image_url": "",
+            "image_alt": "",
+            "dom_path": "span.ldoceEntry[id=\"nail__6\"] > span.Sense[id=\"nail__9\"]",
+            "definition_dom_path": "span.ldoceEntry[id=\"nail__6\"] > span.Sense[id=\"nail__9\"] > .DEF",
+            "image_dom_path": ""
+          },
+          {
+            "source": "longman",
+            "native_id": "nail__10",
+            "pos": "verb",
+            "definition": "to do something perfectly, especially when singing or performing",
+            "examples": [
+              {
+                "text": "I thought that song might be too big for you, but you absolutely nailed it !",
+                "audio_url": "https://www.ldoceonline.com/media/english/exaProns/ldoce6exa_00610.mp3?version=1.2.91",
+                "dom_path": "span.ldoceEntry[id=\"nail__6\"] > span.Sense[id=\"nail__10\"] .EXAMPLE:nth-of-type(1)"
+              }
+            ],
+            "image_url": "",
+            "image_alt": "",
+            "dom_path": "span.ldoceEntry[id=\"nail__6\"] > span.Sense[id=\"nail__10\"]",
+            "definition_dom_path": "span.ldoceEntry[id=\"nail__6\"] > span.Sense[id=\"nail__10\"] > .DEF",
+            "image_dom_path": ""
+          }
+        ],
+        "cross_reference_ids": [
+          "nail__11",
+          "nail__12",
+          "nail__13"
+        ],
+        "other_sense_ids": [],
+        "idiom_ids": [],
+        "dom_path": "span.ldoceEntry[id=\"nail__6\"]"
+      },
+      {
+        "source": "longman",
+        "dataset": "business",
+        "native_id": "nail__14",
+        "word": "nail",
+        "pos": "verb",
+        "pronunciation": {
+          "source": "longman",
+          "pos": "verb",
+          "ipa_uk": "neɪl",
+          "audio_uk_url": "",
+          "dom_path": "span.bussdictEntry[id=\"nail__14\"] .PRON"
+        },
+        "senses": [
+          {
+            "source": "longman",
+            "native_id": "nail__15",
+            "pos": "verb",
+            "definition": "to catch someone and prove that they are guilty of a crime or of doing something bad",
+            "examples": [
+              {
+                "text": "The government spent vast resources in an unsuccessful effort to nail him on felony charges.",
+                "audio_url": "",
+                "dom_path": "span.bussdictEntry[id=\"nail__14\"] > span.Sense[id=\"nail__15\"] .EXAMPLE:nth-of-type(1)"
+              }
+            ],
+            "image_url": "",
+            "image_alt": "",
+            "dom_path": "span.bussdictEntry[id=\"nail__14\"] > span.Sense[id=\"nail__15\"]",
+            "definition_dom_path": "span.bussdictEntry[id=\"nail__14\"] > span.Sense[id=\"nail__15\"] > .DEF",
+            "image_dom_path": ""
+          }
+        ],
+        "cross_reference_ids": [],
+        "other_sense_ids": [],
+        "idiom_ids": [],
+        "dom_path": "span.bussdictEntry[id=\"nail__14\"]"
+      },
+      {
+        "source": "longman",
+        "dataset": "business",
+        "native_id": "nail__16",
+        "word": "nail",
+        "pos": "noun",
+        "pronunciation": {
+          "source": "longman",
+          "pos": "noun",
+          "ipa_uk": "",
+          "audio_uk_url": "",
+          "dom_path": ""
+        },
+        "senses": [
+          {
+            "source": "longman",
+            "native_id": "nail__17",
+            "pos": "noun",
+            "definition": "if you pay for something on the nail, you pay for it immediately",
+            "examples": [
+              {
+                "text": "Not paying on the nail could be extremely expensive.",
+                "audio_url": "",
+                "dom_path": "span.bussdictEntry[id=\"nail__16\"] > span.Sense[id=\"nail__17\"] .EXAMPLE:nth-of-type(1)"
+              }
+            ],
+            "image_url": "",
+            "image_alt": "",
+            "dom_path": "span.bussdictEntry[id=\"nail__16\"] > span.Sense[id=\"nail__17\"]",
+            "definition_dom_path": "span.bussdictEntry[id=\"nail__16\"] > span.Sense[id=\"nail__17\"] > .DEF",
+            "image_dom_path": ""
+          }
+        ],
+        "cross_reference_ids": [],
+        "other_sense_ids": [
+          "nail__19"
+        ],
+        "idiom_ids": [],
+        "dom_path": "span.bussdictEntry[id=\"nail__16\"]"
+      }
+    ],
+    "oxford": [
+      {
+        "source": "oxford",
+        "dataset": "oald",
+        "native_id": "nail_1",
+        "word": "nail",
+        "pos": "noun",
+        "pronunciation": {
+          "source": "oxford",
+          "pos": "noun",
+          "ipa_uk": "/neɪl/",
+          "audio_uk_url": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/n/nai/nail_/nail__gb_1.mp3",
+          "dom_path": "div.entry[id=\"nail_1\"] .phons_br"
+        },
+        "senses": [
+          {
+            "source": "oxford",
+            "native_id": "nail_sng_1",
+            "pos": "noun",
+            "definition": "the thin hard layer covering the outer tip of the fingers or toes",
+            "examples": [
+              {
+                "text": "Stop biting your nails!",
+                "audio_url": "",
+                "dom_path": "div.entry[id=\"nail_1\"] li.sense[id=\"nail_sng_1\"] .x:nth-of-type(1)"
+              },
+              {
+                "text": "nail clippers",
+                "audio_url": "",
+                "dom_path": "div.entry[id=\"nail_1\"] li.sense[id=\"nail_sng_1\"] .x:nth-of-type(2)"
+              }
+            ],
+            "image_url": "",
+            "image_alt": "",
+            "dom_path": "div.entry[id=\"nail_1\"] li.sense[id=\"nail_sng_1\"]",
+            "definition_dom_path": "div.entry[id=\"nail_1\"] li.sense[id=\"nail_sng_1\"] > .def",
+            "image_dom_path": ""
+          },
+          {
+            "source": "oxford",
+            "native_id": "nail_sng_2",
+            "pos": "noun",
+            "definition": "a small thin pointed piece of metal with a flat head, used for joining pieces of wood together or hanging things on a wall",
+            "examples": [
+              {
+                "text": "She hammered the nail in.",
+                "audio_url": "",
+                "dom_path": "div.entry[id=\"nail_1\"] li.sense[id=\"nail_sng_2\"] .x:nth-of-type(1)"
+              },
+              {
+                "text": "He knocked the nail into the wall.",
+                "audio_url": "",
+                "dom_path": "div.entry[id=\"nail_1\"] li.sense[id=\"nail_sng_2\"] .x:nth-of-type(2)"
+              }
+            ],
+            "image_url": "",
+            "image_alt": "",
+            "dom_path": "div.entry[id=\"nail_1\"] li.sense[id=\"nail_sng_2\"]",
+            "definition_dom_path": "div.entry[id=\"nail_1\"] li.sense[id=\"nail_sng_2\"] > .def",
+            "image_dom_path": ""
+          }
+        ],
+        "cross_reference_ids": [],
+        "other_sense_ids": [],
+        "idiom_ids": [
+          "nail_idm_7",
+          "nail_idm_8",
+          "nail_idm_9",
+          "nail_idm_10",
+          "nail_idm_2",
+          "nail_idm_3"
+        ],
+        "dom_path": "div.entry[id=\"nail_1\"]"
+      }
+    ]
+  },
+  "trunk": {
+    "cambridge": [
+      {
+        "source": "cambridge",
+        "dataset": "cald4",
+        "native_id": "",
+        "word": "trunk",
+        "pos": "noun",
+        "pronunciation": {
+          "source": "cambridge",
+          "pos": "noun",
+          "ipa_uk": "trʌŋk",
+          "audio_uk_url": "https://dictionary.cambridge.org/media/english/uk_pron/u/ukt/uktru/uktruam026.mp3",
+          "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) .uk.dpron-i"
+        },
+        "senses": [
+          {
+            "source": "cambridge",
+            "native_id": "ID_00033966_01",
+            "pos": "noun",
+            "definition": "the thick main stem of a tree, from which its branches grow",
+            "examples": [],
+            "image_url": "https://dictionary.cambridge.org/images/full/trunk_noun_002_39163.jpg?version=6.0.80",
+            "image_alt": "picture of trunk",
+            "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_01\"]",
+            "definition_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_01\"] .def.ddef_d",
+            "image_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_01\"] + div.dimg amp-img"
+          },
+          {
+            "source": "cambridge",
+            "native_id": "ID_00033966_02",
+            "pos": "noun",
+            "definition": "the main part of a person's body, not including the head, legs, or arms:",
+            "examples": [
+              {
+                "text": "The statue shows the head, trunk, and arms of an old man.",
+                "audio_url": "",
+                "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_02\"] .eg.deg:nth-of-type(1)"
+              }
+            ],
+            "image_url": "https://dictionary.cambridge.org/images/full/trunk_noun_002_39164.jpg?version=6.0.80",
+            "image_alt": "picture of trunk",
+            "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_02\"]",
+            "definition_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_02\"] .def.ddef_d",
+            "image_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_02\"] + div.dimg amp-img"
+          },
+          {
+            "source": "cambridge",
+            "native_id": "ID_00033966_08",
+            "pos": "noun",
+            "definition": "the main part of a blood vessel or nerve:",
+            "examples": [
+              {
+                "text": "a nerve trunk injury",
+                "audio_url": "",
+                "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_08\"] .eg.deg:nth-of-type(1)"
+              }
+            ],
+            "image_url": "",
+            "image_alt": "",
+            "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_08\"]",
+            "definition_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_08\"] .def.ddef_d",
+            "image_dom_path": ""
+          },
+          {
+            "source": "cambridge",
+            "native_id": "ID_00033966_03",
+            "pos": "noun",
+            "definition": "the long, tube-shaped nose of an elephant",
+            "examples": [],
+            "image_url": "https://dictionary.cambridge.org/images/full/trunk_noun_002_39166.jpg?version=6.0.80",
+            "image_alt": "picture of trunk",
+            "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_03\"]",
+            "definition_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_03\"] .def.ddef_d",
+            "image_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_03\"] + div.dimg amp-img"
+          },
+          {
+            "source": "cambridge",
+            "native_id": "ID_00033966_04",
+            "pos": "noun",
+            "definition": "a large, strong container that is used for storing clothes and personal possessions, often when travelling or going to live in a new place",
+            "examples": [],
+            "image_url": "https://dictionary.cambridge.org/images/full/trunk_noun_002_39167.jpg?version=6.0.80",
+            "image_alt": "picture of trunk",
+            "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_04\"]",
+            "definition_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_04\"] .def.ddef_d",
+            "image_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_04\"] + div.dimg amp-img"
+          },
+          {
+            "source": "cambridge",
+            "native_id": "ID_00033966_06",
+            "pos": "noun",
+            "definition": "a covered space at the back of a car, for storing things in:",
+            "examples": [
+              {
+                "text": "I always keep a blanket and a toolkit in the trunk for emergencies.",
+                "audio_url": "",
+                "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_06\"] .eg.deg:nth-of-type(1)"
+              },
+              {
+                "text": "Stolen goods were found in the trunk of her car.",
+                "audio_url": "",
+                "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_06\"] .eg.deg:nth-of-type(2)"
+              }
+            ],
+            "image_url": "https://dictionary.cambridge.org/images/full/trunk_noun_004_2667.jpg?version=6.0.80",
+            "image_alt": "picture of trunk",
+            "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_06\"]",
+            "definition_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_06\"] .def.ddef_d",
+            "image_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_06\"] + div.dimg amp-img"
+          },
+          {
+            "source": "cambridge",
+            "native_id": "ID_00033966_07",
+            "pos": "noun",
+            "definition": "a piece of men's clothing that covers the hips and bottom and the top part of the legs and is worn when swimming",
+            "examples": [],
+            "image_url": "https://dictionary.cambridge.org/images/full/trunk_noun_003_02456.jpg?version=6.0.80",
+            "image_alt": "picture of trunk",
+            "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_07\"]",
+            "definition_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_07\"] .def.ddef_d",
+            "image_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_07\"] + div.dimg amp-img"
+          },
+          {
+            "source": "cambridge",
+            "native_id": "ID_00033966_05",
+            "pos": "noun",
+            "definition": "a piece of men's underwear that covers the hips and bottom and the top part of the legs",
+            "examples": [],
+            "image_url": "",
+            "image_alt": "",
+            "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_05\"]",
+            "definition_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_05\"] .def.ddef_d",
+            "image_dom_path": ""
+          }
+        ],
+        "cross_reference_ids": [],
+        "other_sense_ids": [],
+        "idiom_ids": [],
+        "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1)"
+      }
+    ],
+    "longman": [
+      {
+        "source": "longman",
+        "dataset": "ldoce",
+        "native_id": "",
+        "word": "trunk",
+        "pos": "noun",
+        "pronunciation": {
+          "source": "longman",
+          "pos": "noun",
+          "ipa_uk": "trʌŋk",
+          "audio_uk_url": "https://www.ldoceonline.com/media/english/breProns/trunk0205.mp3?version=1.2.91",
+          "dom_path": "span.ldoceEntry:nth-of-type(1) .PRON"
+        },
+        "senses": [
+          {
+            "source": "longman",
+            "native_id": "trunk__1",
+            "pos": "noun",
+            "definition": "the thick central woody stem of a tree",
+            "examples": [
+              {
+                "text": "He left his bicycle leaning against a tree trunk.",
+                "audio_url": "https://www.ldoceonline.com/media/english/exaProns/p008-001600754.mp3?version=1.2.91",
+                "dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"trunk__1\"] .EXAMPLE:nth-of-type(1)"
+              },
+              {
+                "text": "the trunk of an old oak tree",
+                "audio_url": "https://www.ldoceonline.com/media/english/exaProns/p008-001600760.mp3?version=1.2.91",
+                "dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"trunk__1\"] .EXAMPLE:nth-of-type(2)"
+              }
+            ],
+            "image_url": "",
+            "image_alt": "",
+            "dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"trunk__1\"]",
+            "definition_dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"trunk__1\"] > .DEF",
+            "image_dom_path": ""
+          },
+          {
+            "source": "longman",
+            "native_id": "trunk__2",
+            "pos": "noun",
+            "definition": "the part at the back of a car where you can put bags, tools etc",
+            "examples": [
+              {
+                "text": "Put your suitcase in the trunk.",
+                "audio_url": "https://www.ldoceonline.com/media/english/exaProns/p008-001600763.mp3?version=1.2.91",
+                "dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"trunk__2\"] .EXAMPLE:nth-of-type(1)"
+              }
+            ],
+            "image_url": "",
+            "image_alt": "",
+            "dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"trunk__2\"]",
+            "definition_dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"trunk__2\"] > .DEF",
+            "image_dom_path": ""
+          },
+          {
+            "source": "longman",
+            "native_id": "trunk__3",
+            "pos": "noun",
+            "definition": "the very long nose of an elephant",
+            "examples": [],
+            "image_url": "",
+            "image_alt": "",
+            "dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"trunk__3\"]",
+            "definition_dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"trunk__3\"] > .DEF",
+            "image_dom_path": ""
+          },
+          {
+            "source": "longman",
+            "native_id": "trunk__4",
+            "pos": "noun",
+            "definition": "a piece of clothing like very short trousers, worn by men for swimming",
+            "examples": [],
+            "image_url": "",
+            "image_alt": "",
+            "dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"trunk__4\"]",
+            "definition_dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"trunk__4\"] > .DEF",
+            "image_dom_path": ""
+          },
+          {
+            "source": "longman",
+            "native_id": "trunk__5",
+            "pos": "noun",
+            "definition": "a very large box made of wood or metal, in which clothes, books etc are stored or packed for travel",
+            "examples": [],
+            "image_url": "",
+            "image_alt": "",
+            "dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"trunk__5\"]",
+            "definition_dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"trunk__5\"] > .DEF",
+            "image_dom_path": ""
+          },
+          {
+            "source": "longman",
+            "native_id": "trunk__6",
+            "pos": "noun",
+            "definition": "the main part of your body, not including your head, arms, or legs",
+            "examples": [],
+            "image_url": "",
+            "image_alt": "",
+            "dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"trunk__6\"]",
+            "definition_dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"trunk__6\"] > .DEF",
+            "image_dom_path": ""
+          }
+        ],
+        "cross_reference_ids": [],
+        "other_sense_ids": [
+          "trunk__8"
+        ],
+        "idiom_ids": [],
+        "dom_path": "span.ldoceEntry:nth-of-type(1)"
+      }
+    ],
+    "oxford": [
+      {
+        "source": "oxford",
+        "dataset": "oald",
+        "native_id": "trunk",
+        "word": "trunk",
+        "pos": "noun",
+        "pronunciation": {
+          "source": "oxford",
+          "pos": "noun",
+          "ipa_uk": "/trʌŋk/",
+          "audio_uk_url": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/t/tru/trunk/trunk__gb_1.mp3",
+          "dom_path": "div.entry[id=\"trunk\"] .phons_br"
+        },
+        "senses": [
+          {
+            "source": "oxford",
+            "native_id": "trunk_sng_1",
+            "pos": "noun",
+            "definition": "the thick main stem of a tree, that the branches grow from",
+            "examples": [
+              {
+                "text": "an instrument made from a hollowed-out tree trunk",
+                "audio_url": "",
+                "dom_path": "div.entry[id=\"trunk\"] li.sense[id=\"trunk_sng_1\"] .x:nth-of-type(1)"
+              }
+            ],
+            "image_url": "",
+            "image_alt": "",
+            "dom_path": "div.entry[id=\"trunk\"] li.sense[id=\"trunk_sng_1\"]",
+            "definition_dom_path": "div.entry[id=\"trunk\"] li.sense[id=\"trunk_sng_1\"] > .def",
+            "image_dom_path": ""
+          },
+          {
+            "source": "oxford",
+            "native_id": "trunk_sng_2",
+            "pos": "noun",
+            "definition": "the space at the back of a car that you put bags, cases, etc. in",
+            "examples": [
+              {
+                "text": "He slammed the trunk shut.",
+                "audio_url": "",
+                "dom_path": "div.entry[id=\"trunk\"] li.sense[id=\"trunk_sng_2\"] .x:nth-of-type(1)"
+              },
+              {
+                "text": "She popped the trunk and we tossed the stuff inside.",
+                "audio_url": "",
+                "dom_path": "div.entry[id=\"trunk\"] li.sense[id=\"trunk_sng_2\"] .x:nth-of-type(2)"
+              }
+            ],
+            "image_url": "",
+            "image_alt": "",
+            "dom_path": "div.entry[id=\"trunk\"] li.sense[id=\"trunk_sng_2\"]",
+            "definition_dom_path": "div.entry[id=\"trunk\"] li.sense[id=\"trunk_sng_2\"] > .def",
+            "image_dom_path": ""
+          },
+          {
+            "source": "oxford",
+            "native_id": "trunk_sng_3",
+            "pos": "noun",
+            "definition": "the long nose of an elephant",
+            "examples": [],
+            "image_url": "",
+            "image_alt": "",
+            "dom_path": "div.entry[id=\"trunk\"] li.sense[id=\"trunk_sng_3\"]",
+            "definition_dom_path": "div.entry[id=\"trunk\"] li.sense[id=\"trunk_sng_3\"] > .def",
+            "image_dom_path": ""
+          },
+          {
+            "source": "oxford",
+            "native_id": "trunk_sng_4",
+            "pos": "noun",
+            "definition": "a piece of clothing covering the lower part of the body and sometimes the top part of the legs, worn by men and boys for swimming",
+            "examples": [],
+            "image_url": "",
+            "image_alt": "",
+            "dom_path": "div.entry[id=\"trunk\"] li.sense[id=\"trunk_sng_4\"]",
+            "definition_dom_path": "div.entry[id=\"trunk\"] li.sense[id=\"trunk_sng_4\"] > .def",
+            "image_dom_path": ""
+          },
+          {
+            "source": "oxford",
+            "native_id": "trunk_sng_5",
+            "pos": "noun",
+            "definition": "a large, strong box with a lid (= cover), used for storing or transporting clothes, books, etc.",
+            "examples": [
+              {
+                "text": "I found the documents at the bottom of an old tin trunk in the attic.",
+                "audio_url": "",
+                "dom_path": "div.entry[id=\"trunk\"] li.sense[id=\"trunk_sng_5\"] .x:nth-of-type(1)"
+              },
+              {
+                "text": "She was packing her school trunk.",
+                "audio_url": "",
+                "dom_path": "div.entry[id=\"trunk\"] li.sense[id=\"trunk_sng_5\"] .x:nth-of-type(2)"
+              }
+            ],
+            "image_url": "",
+            "image_alt": "",
+            "dom_path": "div.entry[id=\"trunk\"] li.sense[id=\"trunk_sng_5\"]",
+            "definition_dom_path": "div.entry[id=\"trunk\"] li.sense[id=\"trunk_sng_5\"] > .def",
+            "image_dom_path": ""
+          },
+          {
+            "source": "oxford",
+            "native_id": "trunk_sng_6",
+            "pos": "noun",
+            "definition": "the main part of the human body apart from the head, arms and legs",
+            "examples": [],
+            "image_url": "",
+            "image_alt": "",
+            "dom_path": "div.entry[id=\"trunk\"] li.sense[id=\"trunk_sng_6\"]",
+            "definition_dom_path": "div.entry[id=\"trunk\"] li.sense[id=\"trunk_sng_6\"] > .def",
+            "image_dom_path": ""
+          }
+        ],
+        "cross_reference_ids": [],
+        "other_sense_ids": [],
+        "idiom_ids": [],
+        "dom_path": "div.entry[id=\"trunk\"]"
+      }
+    ]
+  }
+}

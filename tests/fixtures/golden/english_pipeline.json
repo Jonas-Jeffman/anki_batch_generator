@@ -1,0 +1,88 @@
+{
+  "nail noun": {
+    "cache_keys": [
+      "90c26fdec79253eaebcf787438793967f1811706"
+    ],
+    "card": {
+      "front": "<div style=\"text-align:center\"><b>nail noun</b> /neɪl/</div>",
+      "back": "[sound:audio_en_nail_noun_062b671f.mp3]<br><b>Definition (EN):</b> a thin pointed piece of metal with a flat top, which you hit into a surface with a hammer, for example to join things together or to hang something on<br><b>Example:</b><br>She hit the nail with a hammer.<br><b>Image:</b><br><img src=\"img_en_nail_noun_062b671f.jpg\" alt=\"nail noun\" style=\"max-width:280px; max-height:220px; object-fit:contain;\">",
+      "tags": [
+        "english",
+        "vocab",
+        "custom_tag"
+      ],
+      "guid_seed": "en_word::nail noun"
+    },
+    "final_guid": "bbaf1fec02a034ad100d",
+    "assets": [
+      "img_en_nail_noun_062b671f.jpg",
+      "audio_en_nail_noun_062b671f.mp3",
+      "img_en_nail_noun_062b671f.jpg"
+    ],
+    "audio_calls": 1,
+    "image_calls": 1
+  },
+  "nail verb": {
+    "cache_keys": [
+      "636b05fa90fc74bf260fcf2c888715970c6bc277"
+    ],
+    "card": {
+      "front": "<div style=\"text-align:center\"><b>nail verb</b> /neɪl/</div>",
+      "back": "[sound:audio_en_nail_verb_dacd25f3.mp3]<br><b>Definition (EN):</b> to fasten something to something else with nails<br><b>Example:</b><br>He nailed the board to the wall.",
+      "tags": [
+        "english",
+        "vocab",
+        "custom_tag"
+      ],
+      "guid_seed": "en_word::nail verb"
+    },
+    "final_guid": "38c473cb04d318dd2177",
+    "assets": [
+      "audio_en_nail_verb_dacd25f3.mp3"
+    ],
+    "audio_calls": 1,
+    "image_calls": 0
+  },
+  "rose": {
+    "cache_keys": [
+      "bb357ef9d25a66cb7b6526fb603daea1ce971e95"
+    ],
+    "card": {
+      "front": "<div style=\"text-align:center\"><b>rose</b> /rəʊz/</div>",
+      "back": "[sound:audio_en_rose_f728fb63.mp3]<br><b>Definition (EN):</b> a flower that often has a pleasant smell, and is usually red, pink, white, or yellow, or the bush that this flower grows on<br><b>Example:</b><br>The rose smells sweet.<br><b>Image:</b><br><img src=\"img_en_rose_f728fb63.jpg\" alt=\"rose\" style=\"max-width:280px; max-height:220px; object-fit:contain;\">",
+      "tags": [
+        "english",
+        "vocab",
+        "custom_tag"
+      ],
+      "guid_seed": "en_word::rose"
+    },
+    "final_guid": "08c52d4685f8fc48b4c1",
+    "assets": [
+      "img_en_rose_f728fb63.jpg",
+      "audio_en_rose_f728fb63.mp3",
+      "img_en_rose_f728fb63.jpg"
+    ],
+    "audio_calls": 1,
+    "image_calls": 1
+  },
+  "play hooky": {
+    "cache_keys": [
+      "09723f863039bfda92faec09eb396b3f9d9be923"
+    ],
+    "card": {
+      "front": "<div style=\"text-align:center\"><b>play hooky</b></div>",
+      "back": "<b>Definition (EN):</b> to stay away from school without permission<br><b>Example:</b><br>They played hooky on Friday.",
+      "tags": [
+        "english",
+        "vocab",
+        "custom_tag"
+      ],
+      "guid_seed": "en_word::play hooky"
+    },
+    "final_guid": "0e918464093ff38b633b",
+    "assets": [],
+    "audio_calls": 0,
+    "image_calls": 0
+  }
+}

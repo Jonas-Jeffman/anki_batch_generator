@@ -1,0 +1,57 @@
+{
+  "cambridge:nail": {
+    "fixture": "cambridge_nail.html.gz",
+    "final_url": "https://dictionary.cambridge.org/dictionary/english/nail",
+    "status": 200
+  },
+  "cambridge:rose": {
+    "fixture": "cambridge_rose.html.gz",
+    "final_url": "https://dictionary.cambridge.org/dictionary/english/rose",
+    "status": 200
+  },
+  "cambridge:play-hooky": {
+    "fixture": "cambridge_play_hooky.html.gz",
+    "final_url": "https://dictionary.cambridge.org/dictionary/english/play-hooky",
+    "status": 200
+  },
+  "oxford:nail": {
+    "fixture": "oxford_nail.html.gz",
+    "final_url": "https://www.oxfordlearnersdictionaries.com/definition/english/nail_1",
+    "status": 200
+  },
+  "oxford:nail_1": {
+    "fixture": "oxford_nail.html.gz",
+    "final_url": "https://www.oxfordlearnersdictionaries.com/definition/english/nail_1",
+    "status": 200
+  },
+  "oxford:nail_2": {
+    "fixture": "oxford_nail_2.html.gz",
+    "final_url": "https://www.oxfordlearnersdictionaries.com/definition/english/nail_2",
+    "status": 200
+  },
+  "oxford:rose": {
+    "fixture": "oxford_rose.html.gz",
+    "final_url": "https://www.oxfordlearnersdictionaries.com/definition/english/rose_1",
+    "status": 200
+  },
+  "oxford:play-hooky": {
+    "fixture": "oxford_play_hooky.html.gz",
+    "final_url": "https://www.oxfordlearnersdictionaries.com/definition/english/play-hooky",
+    "status": 404
+  },
+  "longman:nail": {
+    "fixture": "longman_nail.html.gz",
+    "final_url": "https://www.ldoceonline.com/dictionary/nail",
+    "status": 200
+  },
+  "longman:rose": {
+    "fixture": "longman_rose.html.gz",
+    "final_url": "https://www.ldoceonline.com/dictionary/rose",
+    "status": 200
+  },
+  "longman:play-hooky": {
+    "fixture": "longman_play_hooky.html.gz",
+    "final_url": "https://www.ldoceonline.com/dictionary/play-hooky",
+    "status": 200
+  }
+}

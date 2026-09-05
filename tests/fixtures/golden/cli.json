@@ -1,0 +1,49 @@
+{
+  "defaults": {
+    "mode": "",
+    "terms_json": "",
+    "terms_file": "",
+    "hint": "",
+    "tags": [],
+    "deck_name": "",
+    "output": "anki_batch_output.apkg",
+    "preview_json": "anki_batch_preview.json",
+    "cache_path": "anki_batch_cache.json",
+    "media_dir": "anki_media",
+    "model": "gpt-5.4",
+    "tts_model": "gpt-4o-mini-tts",
+    "tts_voice_en": "alloy",
+    "tts_voice_ja": "alloy",
+    "reasoning_effort": "medium",
+    "openai_api_key": "",
+    "openai_base_url": "",
+    "sleep": 2.0,
+    "dict_test_only": false,
+    "self_test": false
+  },
+  "explicit": {
+    "mode": "en_word",
+    "terms_json": "[\"rose\"]",
+    "terms_file": "",
+    "hint": "flower",
+    "tags": [
+      "one",
+      "two words"
+    ],
+    "deck_name": "English::Daily",
+    "output": "deck.apkg",
+    "preview_json": "preview.json",
+    "cache_path": "cache.json",
+    "media_dir": "media",
+    "model": "fixture-model",
+    "tts_model": "fixture-tts",
+    "tts_voice_en": "echo",
+    "tts_voice_ja": "alloy",
+    "reasoning_effort": "low",
+    "openai_api_key": "fixture-key",
+    "openai_base_url": "https://example.test/v1",
+    "sleep": 0.5,
+    "dict_test_only": true,
+    "self_test": false
+  }
+}

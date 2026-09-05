@@ -1,0 +1,50 @@
+{
+  "cards": {
+    "en_word": {
+      "front": "<div style=\"text-align:center\"><b>rose</b> /rəʊz/</div>",
+      "back": "[sound:audio_en_rose.mp3]<br><b>Definition (EN):</b> LLM definition replaced by dictionary.<br><b>Example:</b><br>The rose smells sweet.<br><b>Image:</b><br><img src=\"img_en_rose.jpg\" alt=\"rose\" style=\"max-width:280px; max-height:220px; object-fit:contain;\">",
+      "tags": [
+        "english",
+        "vocab"
+      ],
+      "guid_seed": "en_word::rose"
+    },
+    "ja_word": {
+      "front": "勉強",
+      "back": "[sound:audio_ja_study.mp3]<br><b>読み方:</b> べんきょう<br><b>説明 (日本語):</b> 知識を身につけること。<br><b>例文:</b> 毎日日本語を勉強します。",
+      "tags": [
+        "japanese",
+        "vocab"
+      ],
+      "guid_seed": "ja_word::勉強"
+    },
+    "interview": {
+      "front": "What is a mutex?",
+      "back": "<b>Answer:</b> A mutex protects shared state.<br><b>Key Points:</b><ul><li>One owner</li><li>Prevents races</li></ul><b>Example:</b> Lock a shared counter.",
+      "tags": [
+        "interview",
+        "knowledge"
+      ],
+      "guid_seed": "interview::What is a mutex?"
+    },
+    "paper": {
+      "front": "Attention mechanism",
+      "back": "<b>Core Idea:</b> Weight relevant inputs.<br><b>Why It Matters:</b> It focuses computation.<br><b>Example:</b> Focus on current source words.",
+      "tags": [
+        "paper",
+        "knowledge"
+      ],
+      "guid_seed": "paper::attention mechanism"
+    },
+    "interest": {
+      "front": "Aurora",
+      "back": "<b>What It Is:</b> Colored polar light.<br><b>Fun Fact:</b> Gas determines color.<br><b>Example:</b> Green ribbons cross the sky.",
+      "tags": [
+        "interest",
+        "knowledge"
+      ],
+      "guid_seed": "interest::aurora"
+    }
+  },
+  "preview_json": "[\n  {\n    \"front\": \"<div style=\\\"text-align:center\\\"><b>rose</b> /rəʊz/</div>\",\n    \"back\": \"[sound:audio_en_rose.mp3]<br><b>Definition (EN):</b> LLM definition replaced by dictionary.<br><b>Example:</b><br>The rose smells sweet.<br><b>Image:</b><br><img src=\\\"img_en_rose.jpg\\\" alt=\\\"rose\\\" style=\\\"max-width:280px; max-height:220px; object-fit:contain;\\\">\",\n    \"tags\": [\n      \"english\",\n      \"vocab\"\n    ],\n    \"guid_seed\": \"en_word::rose\"\n  },\n  {\n    \"front\": \"勉強\",\n    \"back\": \"[sound:audio_ja_study.mp3]<br><b>読み方:</b> べんきょう<br><b>説明 (日本語):</b> 知識を身につけること。<br><b>例文:</b> 毎日日本語を勉強します。\",\n    \"tags\": [\n      \"japanese\",\n      \"vocab\"\n    ],\n    \"guid_seed\": \"ja_word::勉強\"\n  },\n  {\n    \"front\": \"What is a mutex?\",\n    \"back\": \"<b>Answer:</b> A mutex protects shared state.<br><b>Key Points:</b><ul><li>One owner</li><li>Prevents races</li></ul><b>Example:</b> Lock a shared counter.\",\n    \"tags\": [\n      \"interview\",\n      \"knowledge\"\n    ],\n    \"guid_seed\": \"interview::What is a mutex?\"\n  },\n  {\n    \"front\": \"Attention mechanism\",\n    \"back\": \"<b>Core Idea:</b> Weight relevant inputs.<br><b>Why It Matters:</b> It focuses computation.<br><b>Example:</b> Focus on current source words.\",\n    \"tags\": [\n      \"paper\",\n      \"knowledge\"\n    ],\n    \"guid_seed\": \"paper::attention mechanism\"\n  },\n  {\n    \"front\": \"Aurora\",\n    \"back\": \"<b>What It Is:</b> Colored polar light.<br><b>Fun Fact:</b> Gas determines color.<br><b>Example:</b> Green ribbons cross the sky.\",\n    \"tags\": [\n      \"interest\",\n      \"knowledge\"\n    ],\n    \"guid_seed\": \"interest::aurora\"\n  }\n]"
+}
