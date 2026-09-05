@@ -269,7 +269,8 @@ class SenseContentAndMediaTests(unittest.TestCase):
             content, [word_audio], example_audio, image
         )
         self.assertIn("noun 2", card.front)
-        self.assertIn("<b>Sense:</b> noun 2", card.back)
+        self.assertNotIn("<b>Sense:</b>", card.back)
+        self.assertTrue(card.back.startswith("[sound:word.mp3]<br><b>Definition (EN):</b>"))
         self.assertIn("[sound:word.mp3]", card.back)
         self.assertNotIn("[sound:example.mp3]", card.back)
         self.assertIn("▶ Play example", card.back)

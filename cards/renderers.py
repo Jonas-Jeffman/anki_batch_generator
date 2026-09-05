@@ -107,8 +107,7 @@ def build_canonical_en_word_card(
         )
     prefix = f"{word_sound}<br>" if word_sound else ""
     back = (
-        f"{prefix}<b>Sense:</b> {html_escape(content.pos)} {content.index}<br>"
-        f"<b>Definition (EN):</b> {html_escape(content.definition.value)}<br>"
+        f"{prefix}<b>Definition (EN):</b> {html_escape(content.definition.value)}<br>"
         f"<b>Example:</b><br>{html_escape(content.example.value)}"
         f"{example_control}{image_html}"
     )
