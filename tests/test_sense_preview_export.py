@@ -127,6 +127,7 @@ def resolved(index: int) -> ResolvedCanonicalContent:
             ResolvedContentField(
                 "https://www.oxfordlearnersdictionaries.com/trunk.mp3",
                 "oxford",
+                selection_scope="exact_pos",
             )
         ],
         image=ResolvedContentField(
@@ -169,6 +170,10 @@ class SensePreviewExportTests(unittest.TestCase):
         )
         self.assertEqual("longman", second["content"]["example_audio"]["source"])
         self.assertEqual("oxford", second["content"]["word_audio_urls"][0]["source"])
+        self.assertEqual(
+            "exact_pos",
+            second["content"]["word_audio_urls"][0]["selection_scope"],
+        )
 
     def test_explicit_index_preview_contains_one_card(self):
         content = resolved(2)

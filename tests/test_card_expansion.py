@@ -11,6 +11,7 @@ from cache import CacheStore
 from canonical_store import CanonicalStore
 from cards import builder
 from models import (
+    AudioAsset,
     BuiltCard,
     CanonicalSense,
     CanonicalSenseRequest,
@@ -247,6 +248,48 @@ class CardExpansionTests(unittest.TestCase):
             )
         self.assertEqual([first, third], result.cards)
         self.assertEqual(["trunk noun 2: broken"], result.errors)
+
+    def test_same_filename_from_multiple_senses_is_returned_once(self):
+        requests = [
+            CanonicalSenseRequest(
+                item=InputItem("en_word", "trunk noun"),
+                word="trunk",
+                pos="noun",
+                canonical_sense=canonical("trunk", "noun", index),
+            )
+            for index in (1, 2)
+        ]
+        shared_audio = AudioAsset("audio_en_trunk_noun.mp3", Path("shared.mp3"))
+        cards = [
+            BuiltCard("one", "back", [], "one"),
+            BuiltCard("two", "back", [], "two"),
+        ]
+        with (
+            patch.object(builder, "expand_english_item", return_value=requests),
+            patch.object(
+                builder,
+                "build_canonical_sense_card",
+                side_effect=[
+                    (cards[0], [shared_audio], None),
+                    (cards[1], [shared_audio], None),
+                ],
+            ),
+        ):
+            result = builder.build_cards(
+                client=None,
+                item=InputItem("en_word", "trunk noun"),
+                model="fixture-model",
+                tts_model="fixture-tts",
+                audio_dir=Path(self.temp_dir.name) / "audio",
+                image_dir=Path(self.temp_dir.name) / "image",
+                tts_voice_en="alloy",
+                tts_voice_ja="alloy",
+                cache=self.cache,
+                reasoning_effort="medium",
+                canonical_store=self.manifest,
+            )
+        self.assertEqual(cards, result.cards)
+        self.assertEqual([shared_audio], result.assets)
 
 
 if __name__ == "__main__":

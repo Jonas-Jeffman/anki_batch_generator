@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import json
+import io
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -155,6 +158,56 @@ class MediaSplitTests(unittest.TestCase):
                 self.assertEqual(expected_calls, calls)
                 self.assertEqual(expected_url, selected)
 
+    def test_english_audio_provider_fallback_matrix(self):
+        item = InputItem("en_word", "matrix noun")
+        urls = [
+            "https://www.oxfordlearnersdictionaries.com/matrix.mp3",
+            "https://dictionary.cambridge.org/matrix.mp3",
+            "https://www.ldoceonline.com/matrix.mp3",
+        ]
+        cases = [
+            ("Oxford available", urls[0], "oxford"),
+            ("Oxford fails", urls[1], "cambridge"),
+            ("Oxford and Cambridge fail", urls[2], "longman"),
+            ("all providers fail", "", ""),
+        ]
+
+        for name, selected_url, expected_source in cases:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as tmp:
+                with (
+                    patch.object(
+                        audio,
+                        "_try_download_english_mp3_from_urls",
+                        return_value=selected_url,
+                    ) as download,
+                    patch.object(audio, "synthesize_tts_to_file") as tts,
+                    redirect_stdout(io.StringIO()),
+                ):
+                    asset = audio.ensure_english_audio(
+                        client=None,
+                        media_dir=Path(tmp),
+                        item=item,
+                        spoken_term="matrix",
+                        preferred_external_url=urls[0],
+                        extra_audio_urls=urls[1:],
+                        tts_model="fixture-tts",
+                        voice="alloy",
+                    )
+
+                download.assert_called_once_with(
+                    urls,
+                    Path(tmp)
+                    / f"audio_en_matrix_noun_{stable_guid(item.mode, item.term)[:8]}.mp3",
+                )
+                tts.assert_not_called()
+                if selected_url:
+                    self.assertEqual(
+                        (expected_source, selected_url),
+                        (asset.source, asset.source_url),
+                    )
+                else:
+                    self.assertIsNone(asset)
+
     def test_invalid_download_is_deleted_before_next_fallback(self):
         urls = ["https://dictionary.cambridge.org/invalid.mp3", "https://example.test/valid.mp3"]
         with tempfile.TemporaryDirectory() as tmp:
@@ -200,6 +253,52 @@ class MediaSplitTests(unittest.TestCase):
             download.assert_not_called()
             tts.assert_not_called()
 
+    def test_same_word_and_pos_downloads_once_then_reuses_the_file(self):
+        item = InputItem("en_word", "mutual noun")
+        oxford_url = "https://www.oxfordlearnersdictionaries.com/mutual.mp3"
+        with tempfile.TemporaryDirectory() as tmp:
+            media_dir = Path(tmp)
+
+            def download_once(urls, filepath):
+                self.assertEqual([oxford_url], urls)
+                filepath.write_bytes(mp3_bytes())
+                return oxford_url
+
+            with patch.object(
+                audio,
+                "_try_download_english_mp3_from_urls",
+                side_effect=download_once,
+            ) as download:
+                output = io.StringIO()
+                with redirect_stdout(output):
+                    first = audio.ensure_english_audio(
+                        client=None,
+                        media_dir=media_dir,
+                        item=item,
+                        spoken_term="mutual",
+                        preferred_external_url=oxford_url,
+                        tts_model="fixture-tts",
+                        voice="alloy",
+                        audio_selection_scopes={oxford_url: "headword_shared"},
+                    )
+                    second = audio.ensure_english_audio(
+                        client=None,
+                        media_dir=media_dir,
+                        item=item,
+                        spoken_term="mutual",
+                        preferred_external_url=oxford_url,
+                        tts_model="fixture-tts",
+                        voice="alloy",
+                        audio_selection_scopes={oxford_url: "headword_shared"},
+                    )
+            download.assert_called_once()
+            self.assertEqual(first.filename, second.filename)
+            self.assertEqual(first.filepath, second.filepath)
+            self.assertEqual(("oxford", oxford_url), (second.source, second.source_url))
+            self.assertEqual(2, output.getvalue().count("selection_scope=headword_shared"))
+            self.assertIn("status=downloaded selection_scope=headword_shared", output.getvalue())
+            self.assertIn("status=cached selection_scope=headword_shared", output.getvalue())
+
     def test_english_audio_replaces_stale_lower_priority_cache(self):
         item = InputItem("en_word", "nail noun")
         filename = f"audio_en_nail_noun_{stable_guid(item.mode, item.term)[:8]}.mp3"
@@ -212,7 +311,8 @@ class MediaSplitTests(unittest.TestCase):
             audio._write_cached_audio_url(cached_path, cambridge_url)
 
             def replace_with_oxford(urls, filepath):
-                self.assertEqual([oxford_url, cambridge_url], urls)
+                self.assertEqual([oxford_url], urls)
+                self.assertEqual(f"{filename}.download", filepath.name)
                 filepath.write_bytes(mp3_bytes())
                 return oxford_url
 
@@ -234,6 +334,50 @@ class MediaSplitTests(unittest.TestCase):
             download.assert_called_once()
             self.assertEqual(("oxford", oxford_url), (asset.source, asset.source_url))
             self.assertEqual(oxford_url, audio._read_cached_audio_url(cached_path))
+
+    def test_higher_priority_failure_reuses_verified_cached_fallback(self):
+        item = InputItem("en_word", "mutual noun")
+        filename = f"audio_en_mutual_noun_{stable_guid(item.mode, item.term)[:8]}.mp3"
+        oxford_url = "https://www.oxfordlearnersdictionaries.com/mutual.mp3"
+        cambridge_url = "https://dictionary.cambridge.org/mutual.mp3"
+        with tempfile.TemporaryDirectory() as tmp:
+            media_dir = Path(tmp)
+            cached_path = media_dir / filename
+            original_bytes = mp3_bytes() + b"cambridge"
+            cached_path.write_bytes(original_bytes)
+            audio._write_cached_audio_url(cached_path, cambridge_url)
+
+            with patch.object(
+                audio,
+                "_try_download_english_mp3_from_urls",
+                return_value="",
+            ) as download:
+                asset = audio.ensure_english_audio(
+                    client=None,
+                    media_dir=media_dir,
+                    item=item,
+                    spoken_term="mutual",
+                    preferred_external_url=oxford_url,
+                    extra_audio_urls=[cambridge_url],
+                    tts_model="fixture-tts",
+                    voice="alloy",
+                )
+            download.assert_called_once_with(
+                [oxford_url], media_dir / f"{filename}.download"
+            )
+            self.assertEqual(("cambridge", cambridge_url), (asset.source, asset.source_url))
+            self.assertEqual(original_bytes, cached_path.read_bytes())
+            self.assertFalse((media_dir / f"{filename}.download").exists())
+
+    def test_audio_source_metadata_records_url_and_derived_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            filepath = Path(tmp) / "word.mp3"
+            url = "https://www.oxfordlearnersdictionaries.com/word.mp3"
+            audio._write_cached_audio_url(filepath, url)
+            metadata = json.loads(
+                audio._audio_source_metadata_path(filepath).read_text(encoding="utf-8")
+            )
+            self.assertEqual({"source": "oxford", "source_url": url}, metadata)
 
     def test_english_audio_does_not_trust_legacy_cache_without_source_metadata(self):
         item = InputItem("en_word", "nail verb")

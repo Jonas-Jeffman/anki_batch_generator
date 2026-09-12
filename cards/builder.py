@@ -21,7 +21,12 @@ from dictionary.cambridge import fetch_cambridge_provider_entries
 from dictionary.canonical import align_canonical_senses
 from dictionary.longman import fetch_longman_provider_entries
 from dictionary.oxford import fetch_oxford_provider_entries
-from dictionary.pronunciation import ordered_word_audio_urls, select_word_ipa
+from dictionary.pronunciation import (
+    headword_audio_selection_scope,
+    ordered_headword_audio_urls,
+    ordered_word_audio_urls,
+    select_word_ipa,
+)
 from dictionary.service import fetch_dictionary_entries, merge_dictionary_entries
 from english_terms import en_word_uses_dictionary_lookup, is_single_word_term, parse_english_term
 from llm.client import LLMClient, generate_json
@@ -240,7 +245,11 @@ def resolve_canonical_content(
                 )
             )
     ipa, ipa_source = select_word_ipa(pronunciation_entries)
-    audio_urls = ordered_word_audio_urls(pronunciation_entries)
+    audio_urls = ordered_headword_audio_urls(
+        request.provider_entries,
+        request.word,
+        request.pos,
+    )
     example_sense, example = example_pair if example_pair else (None, None)
     example_audio_url = (
         example.audio_url
@@ -270,7 +279,17 @@ def resolve_canonical_content(
         ),
         ipa=ResolvedContentField(value=ipa, source=ipa_source),
         word_audio_urls=[
-            ResolvedContentField(value=url, source=source)
+            ResolvedContentField(
+                value=url,
+                source=source,
+                selection_scope=headword_audio_selection_scope(
+                    request.provider_entries,
+                    request.word,
+                    request.pos,
+                    source,
+                    url,
+                ),
+            )
             for url, source in audio_urls
         ],
         image=ResolvedContentField(
@@ -381,6 +400,10 @@ def build_canonical_sense_card(
             tts_model=tts_model,
             voice=tts_voice_en,
             extra_audio_urls=[field.value for field in content.word_audio_urls[1:]],
+            audio_selection_scopes={
+                field.value: field.selection_scope
+                for field in content.word_audio_urls
+            },
         )
         if audio:
             word_audio_assets.append(audio)
@@ -500,6 +523,7 @@ def build_cards(
         except Exception as exc:
             label = f"{request.word} {request.pos} {request.canonical_sense.index}"
             result.errors.append(f"{label}: {exc}")
+    result.assets = list({asset.filename: asset for asset in result.assets}.values())
     return result
 
 

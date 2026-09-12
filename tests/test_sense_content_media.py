@@ -154,6 +154,10 @@ class SenseContentAndMediaTests(unittest.TestCase):
             [field.source for field in content.word_audio_urls],
         )
         self.assertEqual(
+            ["exact_pos", "exact_pos", "exact_pos"],
+            [field.selection_scope for field in content.word_audio_urls],
+        )
+        self.assertEqual(
             ("cambridge", "C1"),
             (content.image.source, content.image.sense_id),
         )

@@ -172,6 +172,7 @@ class ResolvedContentField:
     value: str = ""
     source: str = ""
     sense_id: str = ""
+    selection_scope: str = ""
 
 
 @dataclass

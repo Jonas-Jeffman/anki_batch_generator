@@ -9,15 +9,18 @@ from dictionary.service import dictionary_result_preview
 from models import BuiltCard, InputItem, ResolvedCanonicalContent
 
 
-SENSE_PREVIEW_SCHEMA_VERSION = "sense_aware_v1"
+SENSE_PREVIEW_SCHEMA_VERSION = "sense_aware_v2"
 
 
 def _field_preview(field) -> Dict[str, str]:
-    return {
+    preview = {
         "value": field.value,
         "source": field.source,
         "sense_id": field.sense_id,
     }
+    if field.selection_scope:
+        preview["selection_scope"] = field.selection_scope
+    return preview
 
 
 def write_preview_json(

@@ -1,0 +1,54 @@
+{
+  "mutual adjective": {
+    "ipa": {"value": "/ˈmjuːtʃuəl/", "source": "oxford"},
+    "audio_candidates": [
+      {"source": "oxford", "url": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/m/mut/mutua/mutual__gb_1.mp3", "selection_scope": "exact_pos"},
+      {"source": "cambridge", "url": "https://dictionary.cambridge.org/media/english/uk_pron/m/mut/mutual-adjective.mp3", "selection_scope": "exact_pos"},
+      {"source": "longman", "url": "https://www.ldoceonline.com/media/english/breProns/mutual-adjective.mp3", "selection_scope": "exact_pos"}
+    ],
+    "media_term": "mutual adjective",
+    "media_filename": "audio_en_mutual_adjective_f68be1f6.mp3"
+  },
+  "mutual noun": {
+    "ipa": {"value": "/ˈmjuː.tʃu.əl/", "source": "cambridge"},
+    "audio_candidates": [
+      {"source": "oxford", "url": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/m/mut/mutua/mutual__gb_1.mp3", "selection_scope": "headword_shared"},
+      {"source": "cambridge", "url": "https://dictionary.cambridge.org/media/english/uk_pron/m/mut/mutual-noun.mp3", "selection_scope": "exact_pos"},
+      {"source": "longman", "url": "https://www.ldoceonline.com/media/english/breProns/mutual-noun.mp3", "selection_scope": "exact_pos"}
+    ],
+    "media_term": "mutual noun",
+    "media_filename": "audio_en_mutual_noun_8cbb725b.mp3"
+  },
+  "nail noun": {
+    "ipa": {"value": "/neɪl/", "source": "oxford"},
+    "audio_candidates": [
+      {"source": "oxford", "url": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/n/nai/nail_/nail__gb_1.mp3", "selection_scope": "exact_pos"}
+    ],
+    "media_term": "nail noun",
+    "media_filename": "audio_en_nail_noun_062b671f.mp3"
+  },
+  "nail verb": {
+    "ipa": {"value": "/neɪl/", "source": "oxford"},
+    "audio_candidates": [
+      {"source": "oxford", "url": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/n/nai/nail_/nail__gb_1.mp3", "selection_scope": "exact_pos"}
+    ],
+    "media_term": "nail verb",
+    "media_filename": "audio_en_nail_verb_dacd25f3.mp3"
+  },
+  "record noun": {
+    "ipa": {"value": "/ˈrekɔːd/", "source": "oxford"},
+    "audio_candidates": [
+      {"source": "oxford", "url": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/r/rec/recor/record__gb_1.mp3", "selection_scope": "exact_pos"}
+    ],
+    "media_term": "record noun",
+    "media_filename": "audio_en_record_noun_f10fcb98.mp3"
+  },
+  "record verb": {
+    "ipa": {"value": "/rɪˈkɔːd/", "source": "oxford"},
+    "audio_candidates": [
+      {"source": "oxford", "url": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/r/rec/recor/record__gb_2.mp3", "selection_scope": "exact_pos"}
+    ],
+    "media_term": "record verb",
+    "media_filename": "audio_en_record_verb_340a8b78.mp3"
+  }
+}
