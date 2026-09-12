@@ -41,7 +41,9 @@
             "image_alt": "picture of nail",
             "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00021248_01\"]",
             "definition_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00021248_01\"] .def.ddef_d",
-            "image_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00021248_01\"] + div.dimg amp-img"
+            "image_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00021248_01\"] + div.dimg amp-img",
+            "synonyms": [],
+            "thesaurus_terms": []
           },
           {
             "source": "cambridge",
@@ -69,7 +71,9 @@
             "image_alt": "picture of nail",
             "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00021248_02\"]",
             "definition_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00021248_02\"] .def.ddef_d",
-            "image_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00021248_02\"] + div.dimg amp-img"
+            "image_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00021248_02\"] + div.dimg amp-img",
+            "synonyms": [],
+            "thesaurus_terms": []
           }
         ],
         "cross_reference_ids": [],
@@ -117,7 +121,9 @@
             "image_alt": "",
             "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(2) > div.def-block[data-wl-senseid=\"ID_00021248_05\"]",
             "definition_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(2) > div.def-block[data-wl-senseid=\"ID_00021248_05\"] .def.ddef_d",
-            "image_dom_path": ""
+            "image_dom_path": "",
+            "synonyms": [],
+            "thesaurus_terms": []
           },
           {
             "source": "cambridge",
@@ -135,7 +141,9 @@
             "image_alt": "",
             "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(2) > div.def-block[data-wl-senseid=\"ID_00021248_06\"]",
             "definition_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(2) > div.def-block[data-wl-senseid=\"ID_00021248_06\"] .def.ddef_d",
-            "image_dom_path": ""
+            "image_dom_path": "",
+            "synonyms": [],
+            "thesaurus_terms": []
           },
           {
             "source": "cambridge",
@@ -158,7 +166,9 @@
             "image_alt": "",
             "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(2) > div.def-block[data-wl-senseid=\"ID_00021248_15\"]",
             "definition_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(2) > div.def-block[data-wl-senseid=\"ID_00021248_15\"] .def.ddef_d",
-            "image_dom_path": ""
+            "image_dom_path": "",
+            "synonyms": [],
+            "thesaurus_terms": []
           },
           {
             "source": "cambridge",
@@ -181,7 +191,9 @@
             "image_alt": "",
             "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(2) > div.def-block[data-wl-senseid=\"ID_00021248_16\"]",
             "definition_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(2) > div.def-block[data-wl-senseid=\"ID_00021248_16\"] .def.ddef_d",
-            "image_dom_path": ""
+            "image_dom_path": "",
+            "synonyms": [],
+            "thesaurus_terms": []
           }
         ],
         "cross_reference_ids": [],
@@ -226,7 +238,9 @@
             "image_alt": "",
             "dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"nail__1\"]",
             "definition_dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"nail__1\"] > .DEF",
-            "image_dom_path": ""
+            "image_dom_path": "",
+            "synonyms": [],
+            "thesaurus_terms": []
           },
           {
             "source": "longman",
@@ -259,7 +273,9 @@
             "image_alt": "",
             "dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"nail__2\"]",
             "definition_dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"nail__2\"] > .DEF",
-            "image_dom_path": ""
+            "image_dom_path": "",
+            "synonyms": [],
+            "thesaurus_terms": []
           }
         ],
         "cross_reference_ids": [
@@ -311,7 +327,9 @@
             "image_alt": "",
             "dom_path": "span.ldoceEntry[id=\"nail__6\"] > span.Sense[id=\"nail__7\"]",
             "definition_dom_path": "span.ldoceEntry[id=\"nail__6\"] > span.Sense[id=\"nail__7\"] > .DEF",
-            "image_dom_path": ""
+            "image_dom_path": "",
+            "synonyms": [],
+            "thesaurus_terms": []
           },
           {
             "source": "longman",
@@ -334,7 +352,9 @@
             "image_alt": "",
             "dom_path": "span.ldoceEntry[id=\"nail__6\"] > span.Sense[id=\"nail__8\"]",
             "definition_dom_path": "span.ldoceEntry[id=\"nail__6\"] > span.Sense[id=\"nail__8\"] > .DEF",
-            "image_dom_path": ""
+            "image_dom_path": "",
+            "synonyms": [],
+            "thesaurus_terms": []
           },
           {
             "source": "longman",
@@ -352,7 +372,9 @@
             "image_alt": "",
             "dom_path": "span.ldoceEntry[id=\"nail__6\"] > span.Sense[id=\"nail__9\"]",
             "definition_dom_path": "span.ldoceEntry[id=\"nail__6\"] > span.Sense[id=\"nail__9\"] > .DEF",
-            "image_dom_path": ""
+            "image_dom_path": "",
+            "synonyms": [],
+            "thesaurus_terms": []
           },
           {
             "source": "longman",
@@ -370,7 +392,9 @@
             "image_alt": "",
             "dom_path": "span.ldoceEntry[id=\"nail__6\"] > span.Sense[id=\"nail__10\"]",
             "definition_dom_path": "span.ldoceEntry[id=\"nail__6\"] > span.Sense[id=\"nail__10\"] > .DEF",
-            "image_dom_path": ""
+            "image_dom_path": "",
+            "synonyms": [],
+            "thesaurus_terms": []
           }
         ],
         "cross_reference_ids": [
@@ -412,7 +436,9 @@
             "image_alt": "",
             "dom_path": "span.bussdictEntry[id=\"nail__14\"] > span.Sense[id=\"nail__15\"]",
             "definition_dom_path": "span.bussdictEntry[id=\"nail__14\"] > span.Sense[id=\"nail__15\"] > .DEF",
-            "image_dom_path": ""
+            "image_dom_path": "",
+            "synonyms": [],
+            "thesaurus_terms": []
           }
         ],
         "cross_reference_ids": [],
@@ -450,7 +476,9 @@
             "image_alt": "",
             "dom_path": "span.bussdictEntry[id=\"nail__16\"] > span.Sense[id=\"nail__17\"]",
             "definition_dom_path": "span.bussdictEntry[id=\"nail__16\"] > span.Sense[id=\"nail__17\"] > .DEF",
-            "image_dom_path": ""
+            "image_dom_path": "",
+            "synonyms": [],
+            "thesaurus_terms": []
           }
         ],
         "cross_reference_ids": [],
@@ -497,7 +525,9 @@
             "image_alt": "",
             "dom_path": "div.entry[id=\"nail_1\"] li.sense[id=\"nail_sng_1\"]",
             "definition_dom_path": "div.entry[id=\"nail_1\"] li.sense[id=\"nail_sng_1\"] > .def",
-            "image_dom_path": ""
+            "image_dom_path": "",
+            "synonyms": [],
+            "thesaurus_terms": []
           },
           {
             "source": "oxford",
@@ -520,7 +550,9 @@
             "image_alt": "",
             "dom_path": "div.entry[id=\"nail_1\"] li.sense[id=\"nail_sng_2\"]",
             "definition_dom_path": "div.entry[id=\"nail_1\"] li.sense[id=\"nail_sng_2\"] > .def",
-            "image_dom_path": ""
+            "image_dom_path": "",
+            "synonyms": [],
+            "thesaurus_terms": []
           }
         ],
         "cross_reference_ids": [],
@@ -563,7 +595,9 @@
             "image_alt": "picture of trunk",
             "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_01\"]",
             "definition_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_01\"] .def.ddef_d",
-            "image_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_01\"] + div.dimg amp-img"
+            "image_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_01\"] + div.dimg amp-img",
+            "synonyms": [],
+            "thesaurus_terms": []
           },
           {
             "source": "cambridge",
@@ -581,7 +615,9 @@
             "image_alt": "picture of trunk",
             "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_02\"]",
             "definition_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_02\"] .def.ddef_d",
-            "image_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_02\"] + div.dimg amp-img"
+            "image_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_02\"] + div.dimg amp-img",
+            "synonyms": [],
+            "thesaurus_terms": []
           },
           {
             "source": "cambridge",
@@ -599,7 +635,9 @@
             "image_alt": "",
             "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_08\"]",
             "definition_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_08\"] .def.ddef_d",
-            "image_dom_path": ""
+            "image_dom_path": "",
+            "synonyms": [],
+            "thesaurus_terms": []
           },
           {
             "source": "cambridge",
@@ -611,7 +649,9 @@
             "image_alt": "picture of trunk",
             "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_03\"]",
             "definition_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_03\"] .def.ddef_d",
-            "image_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_03\"] + div.dimg amp-img"
+            "image_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_03\"] + div.dimg amp-img",
+            "synonyms": [],
+            "thesaurus_terms": []
           },
           {
             "source": "cambridge",
@@ -623,7 +663,9 @@
             "image_alt": "picture of trunk",
             "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_04\"]",
             "definition_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_04\"] .def.ddef_d",
-            "image_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_04\"] + div.dimg amp-img"
+            "image_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_04\"] + div.dimg amp-img",
+            "synonyms": [],
+            "thesaurus_terms": []
           },
           {
             "source": "cambridge",
@@ -646,7 +688,9 @@
             "image_alt": "picture of trunk",
             "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_06\"]",
             "definition_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_06\"] .def.ddef_d",
-            "image_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_06\"] + div.dimg amp-img"
+            "image_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_06\"] + div.dimg amp-img",
+            "synonyms": [],
+            "thesaurus_terms": []
           },
           {
             "source": "cambridge",
@@ -658,7 +702,9 @@
             "image_alt": "picture of trunk",
             "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_07\"]",
             "definition_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_07\"] .def.ddef_d",
-            "image_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_07\"] + div.dimg amp-img"
+            "image_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_07\"] + div.dimg amp-img",
+            "synonyms": [],
+            "thesaurus_terms": []
           },
           {
             "source": "cambridge",
@@ -670,7 +716,9 @@
             "image_alt": "",
             "dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_05\"]",
             "definition_dom_path": "div.dictionary[data-id=\"cald4\"] > div.entry-body__el:nth-of-type(1) > div.def-block[data-wl-senseid=\"ID_00033966_05\"] .def.ddef_d",
-            "image_dom_path": ""
+            "image_dom_path": "",
+            "synonyms": [],
+            "thesaurus_terms": []
           }
         ],
         "cross_reference_ids": [],
@@ -715,7 +763,9 @@
             "image_alt": "",
             "dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"trunk__1\"]",
             "definition_dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"trunk__1\"] > .DEF",
-            "image_dom_path": ""
+            "image_dom_path": "",
+            "synonyms": [],
+            "thesaurus_terms": []
           },
           {
             "source": "longman",
@@ -733,7 +783,11 @@
             "image_alt": "",
             "dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"trunk__2\"]",
             "definition_dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"trunk__2\"] > .DEF",
-            "image_dom_path": ""
+            "image_dom_path": "",
+            "synonyms": [
+              "boot"
+            ],
+            "thesaurus_terms": []
           },
           {
             "source": "longman",
@@ -745,7 +799,9 @@
             "image_alt": "",
             "dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"trunk__3\"]",
             "definition_dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"trunk__3\"] > .DEF",
-            "image_dom_path": ""
+            "image_dom_path": "",
+            "synonyms": [],
+            "thesaurus_terms": []
           },
           {
             "source": "longman",
@@ -757,7 +813,9 @@
             "image_alt": "",
             "dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"trunk__4\"]",
             "definition_dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"trunk__4\"] > .DEF",
-            "image_dom_path": ""
+            "image_dom_path": "",
+            "synonyms": [],
+            "thesaurus_terms": []
           },
           {
             "source": "longman",
@@ -769,7 +827,9 @@
             "image_alt": "",
             "dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"trunk__5\"]",
             "definition_dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"trunk__5\"] > .DEF",
-            "image_dom_path": ""
+            "image_dom_path": "",
+            "synonyms": [],
+            "thesaurus_terms": []
           },
           {
             "source": "longman",
@@ -781,7 +841,11 @@
             "image_alt": "",
             "dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"trunk__6\"]",
             "definition_dom_path": "span.ldoceEntry:nth-of-type(1) > span.Sense[id=\"trunk__6\"] > .DEF",
-            "image_dom_path": ""
+            "image_dom_path": "",
+            "synonyms": [
+              "torso"
+            ],
+            "thesaurus_terms": []
           }
         ],
         "cross_reference_ids": [],
@@ -823,7 +887,9 @@
             "image_alt": "",
             "dom_path": "div.entry[id=\"trunk\"] li.sense[id=\"trunk_sng_1\"]",
             "definition_dom_path": "div.entry[id=\"trunk\"] li.sense[id=\"trunk_sng_1\"] > .def",
-            "image_dom_path": ""
+            "image_dom_path": "",
+            "synonyms": [],
+            "thesaurus_terms": []
           },
           {
             "source": "oxford",
@@ -846,7 +912,9 @@
             "image_alt": "",
             "dom_path": "div.entry[id=\"trunk\"] li.sense[id=\"trunk_sng_2\"]",
             "definition_dom_path": "div.entry[id=\"trunk\"] li.sense[id=\"trunk_sng_2\"] > .def",
-            "image_dom_path": ""
+            "image_dom_path": "",
+            "synonyms": [],
+            "thesaurus_terms": []
           },
           {
             "source": "oxford",
@@ -858,7 +926,9 @@
             "image_alt": "",
             "dom_path": "div.entry[id=\"trunk\"] li.sense[id=\"trunk_sng_3\"]",
             "definition_dom_path": "div.entry[id=\"trunk\"] li.sense[id=\"trunk_sng_3\"] > .def",
-            "image_dom_path": ""
+            "image_dom_path": "",
+            "synonyms": [],
+            "thesaurus_terms": []
           },
           {
             "source": "oxford",
@@ -870,7 +940,9 @@
             "image_alt": "",
             "dom_path": "div.entry[id=\"trunk\"] li.sense[id=\"trunk_sng_4\"]",
             "definition_dom_path": "div.entry[id=\"trunk\"] li.sense[id=\"trunk_sng_4\"] > .def",
-            "image_dom_path": ""
+            "image_dom_path": "",
+            "synonyms": [],
+            "thesaurus_terms": []
           },
           {
             "source": "oxford",
@@ -893,7 +965,9 @@
             "image_alt": "",
             "dom_path": "div.entry[id=\"trunk\"] li.sense[id=\"trunk_sng_5\"]",
             "definition_dom_path": "div.entry[id=\"trunk\"] li.sense[id=\"trunk_sng_5\"] > .def",
-            "image_dom_path": ""
+            "image_dom_path": "",
+            "synonyms": [],
+            "thesaurus_terms": []
           },
           {
             "source": "oxford",
@@ -905,7 +979,9 @@
             "image_alt": "",
             "dom_path": "div.entry[id=\"trunk\"] li.sense[id=\"trunk_sng_6\"]",
             "definition_dom_path": "div.entry[id=\"trunk\"] li.sense[id=\"trunk_sng_6\"] > .def",
-            "image_dom_path": ""
+            "image_dom_path": "",
+            "synonyms": [],
+            "thesaurus_terms": []
           }
         ],
         "cross_reference_ids": [],

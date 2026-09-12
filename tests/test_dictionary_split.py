@@ -69,7 +69,8 @@ class DictionarySplitTests(unittest.TestCase):
                 self.assertEqual(first_definition, senses[0].definition)
                 self.assertTrue(all(candidate.source == module.__name__.rsplit(".", 1)[-1] for candidate in senses))
                 self.assertEqual("", image_url)
-                self.assertEqual(2, len(http.calls))
+                expected_calls = 4 if module is oxford else 2
+                self.assertEqual(expected_calls, len(http.calls))
 
     def test_provider_rejection_paths_remain_unchanged(self):
         unavailable = Mock(

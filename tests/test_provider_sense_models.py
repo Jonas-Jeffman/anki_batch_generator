@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
+from pathlib import Path
 import re
 from types import SimpleNamespace
 import unittest
@@ -9,7 +10,7 @@ from urllib.parse import urljoin
 
 from dictionary import cambridge, longman, oxford
 from tests.dictionary_page_snapshot import read_page
-from tests.support import GOLDEN_ROOT, load_json
+from tests.support import DictionaryFixtureHTTP, GOLDEN_ROOT, load_json
 
 
 PROVIDERS = {
@@ -58,6 +59,30 @@ class ProviderSenseModelTests(unittest.TestCase):
                     )
                 ]
         self.assertEqual(expected, actual)
+
+    def test_yield_longman_enrichment_stays_with_its_native_sense(self):
+        entries = longman.parse_longman_provider_entries(
+            (Path(__file__).resolve().parents[1] / "yield" / "yield_longman.md").read_text(
+                encoding="utf-8"
+            ),
+            "https://www.ldoceonline.com/dictionary/yield",
+            "yield",
+        )
+        enrichment = {
+            sense.native_id: (sense.synonyms, sense.thesaurus_terms)
+            for entry in entries
+            for sense in entry.senses
+            if sense.synonyms or sense.thesaurus_terms
+        }
+        self.assertEqual(
+            {
+                "yield__4": (["give way"], []),
+                "yield__5": (["give"], []),
+                "yield__6": (["surrender"], []),
+                "yield__8": ([], ["amount"]),
+            },
+            enrichment,
+        )
 
     def test_structured_fields_match_independent_dom_snapshot(self):
         snapshot = load_json(GOLDEN_ROOT / "real_dictionary_pages.json")["pages"]
@@ -185,11 +210,44 @@ class ProviderSenseModelTests(unittest.TestCase):
                 ):
                     entries = fetcher(term)
                 self.assertTrue(entries)
-                get.assert_called_once_with(
-                    url,
-                    timeout=12,
-                    headers={"User-Agent": "anki-batch-generator/2.0"},
-                )
+                expected_urls = [url]
+                if provider == "oxford":
+                    expected_urls.append(
+                        "https://www.oxfordlearnersdictionaries.com/definition/english/nail_2"
+                    )
+                self.assertEqual(expected_urls, [call.args[0] for call in get.call_args_list])
+                for call in get.call_args_list:
+                    self.assertEqual(12, call.kwargs["timeout"])
+                    self.assertEqual(
+                        {"User-Agent": "anki-batch-generator/2.0"},
+                        call.kwargs["headers"],
+                    )
+
+    def test_oxford_fetch_discovers_nail_noun_and_verb_pronunciations(self):
+        fixture_http = DictionaryFixtureHTTP()
+        with (
+            patch.object(oxford.requests, "get", side_effect=fixture_http.get),
+            patch.object(oxford, "retry_call", side_effect=lambda fn, **_: fn()),
+        ):
+            entries = oxford.fetch_oxford_provider_entries("nail")
+
+        self.assertEqual(["noun", "verb"], [entry.pos for entry in entries])
+        self.assertEqual(
+            [
+                "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/"
+                "n/nai/nail_/nail__gb_1.mp3",
+                "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/"
+                "n/nai/nail_/nail__gb_1.mp3",
+            ],
+            [entry.pronunciation.audio_uk_url for entry in entries],
+        )
+        self.assertEqual(
+            [
+                "https://www.oxfordlearnersdictionaries.com/definition/english/nail",
+                "https://www.oxfordlearnersdictionaries.com/definition/english/nail_2",
+            ],
+            [call["url"] for call in fixture_http.calls],
+        )
 
     def test_phase_four_structural_acceptance_counts(self):
         trunk_cambridge = cambridge.parse_cambridge_provider_entries(

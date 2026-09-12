@@ -177,7 +177,11 @@ class MediaSplitTests(unittest.TestCase):
         expected_name = f"audio_en_nail_noun_{stable_guid(item.mode, item.term)[:8]}.mp3"
         with tempfile.TemporaryDirectory() as tmp:
             media_dir = Path(tmp)
-            (media_dir / expected_name).write_bytes(mp3_bytes())
+            cached_path = media_dir / expected_name
+            cached_path.write_bytes(mp3_bytes())
+            audio._write_cached_audio_url(
+                cached_path, "https://dictionary.cambridge.org/nail.mp3"
+            )
             with (
                 patch.object(audio, "_try_download_english_mp3_from_urls") as download,
                 patch.object(audio, "synthesize_tts_to_file") as tts,
@@ -195,6 +199,73 @@ class MediaSplitTests(unittest.TestCase):
             self.assertEqual("cambridge", asset.source)
             download.assert_not_called()
             tts.assert_not_called()
+
+    def test_english_audio_replaces_stale_lower_priority_cache(self):
+        item = InputItem("en_word", "nail noun")
+        filename = f"audio_en_nail_noun_{stable_guid(item.mode, item.term)[:8]}.mp3"
+        oxford_url = "https://www.oxfordlearnersdictionaries.com/nail.mp3"
+        cambridge_url = "https://dictionary.cambridge.org/nail.mp3"
+        with tempfile.TemporaryDirectory() as tmp:
+            media_dir = Path(tmp)
+            cached_path = media_dir / filename
+            cached_path.write_bytes(mp3_bytes())
+            audio._write_cached_audio_url(cached_path, cambridge_url)
+
+            def replace_with_oxford(urls, filepath):
+                self.assertEqual([oxford_url, cambridge_url], urls)
+                filepath.write_bytes(mp3_bytes())
+                return oxford_url
+
+            with patch.object(
+                audio,
+                "_try_download_english_mp3_from_urls",
+                side_effect=replace_with_oxford,
+            ) as download:
+                asset = audio.ensure_english_audio(
+                    client=None,
+                    media_dir=media_dir,
+                    item=item,
+                    spoken_term="nail",
+                    preferred_external_url=oxford_url,
+                    extra_audio_urls=[cambridge_url],
+                    tts_model="fixture-tts",
+                    voice="alloy",
+                )
+            download.assert_called_once()
+            self.assertEqual(("oxford", oxford_url), (asset.source, asset.source_url))
+            self.assertEqual(oxford_url, audio._read_cached_audio_url(cached_path))
+
+    def test_english_audio_does_not_trust_legacy_cache_without_source_metadata(self):
+        item = InputItem("en_word", "nail verb")
+        filename = f"audio_en_nail_verb_{stable_guid(item.mode, item.term)[:8]}.mp3"
+        oxford_url = "https://www.oxfordlearnersdictionaries.com/nail.mp3"
+        with tempfile.TemporaryDirectory() as tmp:
+            media_dir = Path(tmp)
+            cached_path = media_dir / filename
+            cached_path.write_bytes(mp3_bytes())
+
+            def download_oxford(urls, filepath):
+                self.assertEqual([oxford_url], urls)
+                filepath.write_bytes(mp3_bytes())
+                return oxford_url
+
+            with patch.object(
+                audio,
+                "_try_download_english_mp3_from_urls",
+                side_effect=download_oxford,
+            ) as download:
+                asset = audio.ensure_english_audio(
+                    client=None,
+                    media_dir=media_dir,
+                    item=item,
+                    spoken_term="nail",
+                    preferred_external_url=oxford_url,
+                    tts_model="fixture-tts",
+                    voice="alloy",
+                )
+            download.assert_called_once()
+            self.assertEqual("oxford", asset.source)
+            self.assertEqual(oxford_url, audio._read_cached_audio_url(cached_path))
 
     def test_english_audio_all_dictionary_failures_do_not_use_tts(self):
         item = InputItem("en_word", "rose")

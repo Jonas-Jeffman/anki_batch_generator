@@ -12,7 +12,11 @@ from cards.renderers import (
     build_ja_word_card,
     build_knowledge_card,
 )
-from config import LLM_SCHEMA_VERSION
+from config import (
+    EXAMPLE_AUDIO_ICON_FILENAME,
+    EXAMPLE_AUDIO_ICON_PATH,
+    LLM_SCHEMA_VERSION,
+)
 from dictionary.cambridge import fetch_cambridge_provider_entries
 from dictionary.canonical import align_canonical_senses
 from dictionary.longman import fetch_longman_provider_entries
@@ -275,6 +279,16 @@ def resolve_canonical_content(
             sense_id=cambridge.native_id if cambridge and cambridge.image_url else "",
         ),
         image_alt=cambridge.image_alt if cambridge else "",
+        definition_synonyms=(
+            list(definition_sense.synonyms)
+            if definition_sense and definition_sense.source == "longman"
+            else []
+        ),
+        definition_thesaurus_terms=(
+            list(definition_sense.thesaurus_terms)
+            if definition_sense and definition_sense.source == "longman"
+            else []
+        ),
     )
 
 
@@ -386,6 +400,18 @@ def build_canonical_sense_card(
             preferred_image_source="cambridge",
             allow_fallback=False,
         )
+    example_audio_icon = None
+    if example_audio:
+        if not EXAMPLE_AUDIO_ICON_PATH.is_file():
+            raise FileNotFoundError(
+                f"Example audio icon not found: {EXAMPLE_AUDIO_ICON_PATH}"
+            )
+        example_audio_icon = AudioAsset(
+            filename=EXAMPLE_AUDIO_ICON_FILENAME,
+            filepath=EXAMPLE_AUDIO_ICON_PATH,
+            source_type="example_audio_icon",
+            source="bundled",
+        )
     built = build_canonical_en_word_card(
         content,
         word_audio_assets,
@@ -402,6 +428,8 @@ def build_canonical_sense_card(
     assets = [*word_audio_assets]
     if example_audio:
         assets.append(example_audio)
+    if example_audio_icon:
+        assets.append(example_audio_icon)
     if image:
         assets.append(image)
     return card, assets, content

@@ -9,6 +9,7 @@ from tests import support  # noqa: F401 - installs offline dependency stubs
 
 from cards.builder import resolve_canonical_content
 from cards.renderers import build_canonical_en_word_card
+from config import EXAMPLE_AUDIO_ICON_FILENAME, EXAMPLE_AUDIO_ICON_PATH
 from media import audio, images
 from models import (
     AudioAsset,
@@ -34,6 +35,8 @@ def provider_entry(
     image: str = "",
     ipa: str = "",
     word_audio: str = "",
+    synonyms=None,
+    thesaurus_terms=None,
 ) -> ProviderEntry:
     examples = (
         [DictionaryExample(text=example, audio_url=example_audio)]
@@ -60,6 +63,8 @@ def provider_entry(
                 definition=definition,
                 examples=examples,
                 image_url=image,
+                synonyms=list(synonyms or []),
+                thesaurus_terms=list(thesaurus_terms or []),
             )
         ],
     )
@@ -86,6 +91,10 @@ def request(entries) -> CanonicalSenseRequest:
 
 
 class SenseContentAndMediaTests(unittest.TestCase):
+    def test_example_audio_icon_is_a_bundled_svg(self):
+        self.assertEqual("audio_bre_initial.svg", EXAMPLE_AUDIO_ICON_FILENAME)
+        self.assertTrue(EXAMPLE_AUDIO_ICON_PATH.is_file())
+
     def test_each_field_uses_its_own_source_and_records_provenance(self):
         longman_audio = (
             "https://www.ldoceonline.com/media/english/exaProns/example.mp3"
@@ -164,6 +173,29 @@ class SenseContentAndMediaTests(unittest.TestCase):
         content = resolve_canonical_content(request(entries))
         self.assertEqual("cambridge", content.example.source)
         self.assertEqual("", content.example_audio.value)
+
+    def test_longman_definition_enrichment_is_rendered_without_changing_definition(self):
+        entries = [
+            provider_entry("cambridge", "C1", "Cambridge definition"),
+            provider_entry(
+                "longman",
+                "L1",
+                "base definition",
+                synonyms=["give way", "surrender"],
+                thesaurus_terms=["amount", "return"],
+            ),
+        ]
+        content = resolve_canonical_content(request(entries))
+        self.assertEqual("base definition", content.definition.value)
+        self.assertEqual(["give way", "surrender"], content.definition_synonyms)
+        self.assertEqual(["amount", "return"], content.definition_thesaurus_terms)
+
+        card = build_canonical_en_word_card(content, [], None, None)
+        self.assertIn(
+            "<b>Definition (EN):</b> base definition "
+            "SYN give way, surrender amount, return<br>",
+            card.back,
+        )
 
     def test_definition_and_example_fallbacks_are_independent(self):
         cases = (
@@ -273,10 +305,30 @@ class SenseContentAndMediaTests(unittest.TestCase):
         self.assertTrue(card.back.startswith("[sound:word.mp3]<br><b>Definition (EN):</b>"))
         self.assertIn("[sound:word.mp3]", card.back)
         self.assertNotIn("[sound:example.mp3]", card.back)
-        self.assertIn("▶ Play example", card.back)
+        self.assertNotIn("▶ Play example", card.back)
+        self.assertIn('src="audio_bre_initial.svg"', card.back)
+        self.assertIn('aria-label="Play example audio"', card.back)
+        self.assertIn('onclick="this.nextElementSibling.play()"', card.back)
         self.assertIn('preload="none" src="example.mp3"', card.back)
         self.assertIn("Use &lt;it&gt;.", card.back)
         self.assertEqual("en_word::canonical::two", card.guid_seed)
+
+    def test_renderer_omits_example_audio_control_without_example_audio(self):
+        content = ResolvedCanonicalContent(
+            word="trunk",
+            pos="noun",
+            index=1,
+            canonical_key="canonical::one",
+            status="active",
+            definition=ResolvedContentField("the main stem", "cambridge", "C1"),
+            example=ResolvedContentField("A thick trunk.", "cambridge", "C1"),
+            example_audio=ResolvedContentField(),
+            ipa=ResolvedContentField("trʌŋk", "oxford"),
+        )
+        card = build_canonical_en_word_card(content, [], None, None)
+        self.assertNotIn("audio_bre_initial.svg", card.back)
+        self.assertNotIn("<audio", card.back)
+        self.assertNotIn("<button", card.back)
 
 
 if __name__ == "__main__":

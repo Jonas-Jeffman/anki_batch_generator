@@ -93,6 +93,8 @@ class ProviderSense:
     dom_path: str = ""
     definition_dom_path: str = ""
     image_dom_path: str = ""
+    synonyms: List[str] = field(default_factory=list)
+    thesaurus_terms: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -186,6 +188,8 @@ class ResolvedCanonicalContent:
     word_audio_urls: List[ResolvedContentField] = field(default_factory=list)
     image: ResolvedContentField = field(default_factory=ResolvedContentField)
     image_alt: str = ""
+    definition_synonyms: List[str] = field(default_factory=list)
+    definition_thesaurus_terms: List[str] = field(default_factory=list)
 
 
 @dataclass

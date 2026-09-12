@@ -2,9 +2,19 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional
 
+from config import EXAMPLE_AUDIO_ICON_FILENAME
 from english_terms import is_two_word_term, lexical_word_count
 from models import AudioAsset, BuiltCard, ResolvedCanonicalContent
 from utils import html_escape
+
+
+def _definition_with_longman_enrichment(content: ResolvedCanonicalContent) -> str:
+    parts = [content.definition.value.strip()]
+    if content.definition_synonyms:
+        parts.append(f"SYN {', '.join(content.definition_synonyms)}")
+    if content.definition_thesaurus_terms:
+        parts.append(", ".join(content.definition_thesaurus_terms))
+    return " ".join(part for part in parts if part)
 
 
 def build_en_word_card(
@@ -92,8 +102,13 @@ def build_canonical_en_word_card(
     example_control = ""
     if example_audio:
         example_control = (
-            '<br><button type="button" '
-            'onclick="this.nextElementSibling.play()">▶ Play example</button>'
+            '<br><button type="button" title="Play example audio" '
+            'aria-label="Play example audio" '
+            'style="padding:2px; border:0; background:transparent; cursor:pointer;" '
+            'onclick="this.nextElementSibling.play()">'
+            f'<img src="{html_escape(EXAMPLE_AUDIO_ICON_FILENAME)}" alt="" '
+            'style="display:block; width:31px; height:28px;">'
+            '</button>'
             f'<audio preload="none" src="{html_escape(example_audio.filename)}" '
             'style="display:none"></audio>'
         )
@@ -107,7 +122,8 @@ def build_canonical_en_word_card(
         )
     prefix = f"{word_sound}<br>" if word_sound else ""
     back = (
-        f"{prefix}<b>Definition (EN):</b> {html_escape(content.definition.value)}<br>"
+        f"{prefix}<b>Definition (EN):</b> "
+        f"{html_escape(_definition_with_longman_enrichment(content))}<br>"
         f"<b>Example:</b><br>{html_escape(content.example.value)}"
         f"{example_control}{image_html}"
     )

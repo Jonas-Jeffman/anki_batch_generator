@@ -301,6 +301,25 @@ def parse_oxford_provider_entries(
     ]
 
 
+def _linked_oxford_entry_urls(
+    body: str, page_url: str, normalized: str, headword: str
+) -> List[str]:
+    document = parse_html_document(body)
+    pattern = re.compile(rf"/definition/english/{re.escape(normalized)}_\d+/?$")
+    urls: List[str] = []
+    for node in document.descendants("a"):
+        href = node.attrs.get("href", "").split("#", 1)[0]
+        url = urljoin(page_url, href)
+        title = _clean_dictionary_text(node.attrs.get("title", ""))
+        title_match = re.fullmatch(
+            rf"{re.escape(headword)} (noun|verb|adjective|adverb) definition",
+            title,
+        )
+        if pattern.search(url) and title_match and url not in urls:
+            urls.append(url)
+    return urls
+
+
 def fetch_oxford_provider_entries(term: str) -> List[ProviderEntry]:
     clean_term = strip_pos_labels_from_term(term)
     if not clean_term:
@@ -308,23 +327,66 @@ def fetch_oxford_provider_entries(term: str) -> List[ProviderEntry]:
     normalized = clean_term.strip().replace(" ", "-")
     url = f"https://www.oxfordlearnersdictionaries.com/definition/english/{quote(normalized)}"
 
-    def _do_request() -> List[ProviderEntry]:
-        resp = requests.get(
-            url,
+    def _fetch_page(page_url: str):
+        return requests.get(
+            page_url,
             timeout=12,
             headers={"User-Agent": "anki-batch-generator/2.0"},
         )
-        if not resp.ok or _oxford_page_is_misspelling(resp.text):
-            return []
-        headword = _extract_oxford_headword(resp.text)
-        if headword and not _headword_matches_term(headword, clean_term):
-            return []
-        return parse_oxford_provider_entries(resp.text, resp.url, clean_term)
 
     try:
-        return retry_call(_do_request, retries=2, base_sleep=1.0)
+        first_response = retry_call(
+            lambda: _fetch_page(url), retries=2, base_sleep=1.0
+        )
     except Exception:
         return []
+    if not first_response.ok or _oxford_page_is_misspelling(first_response.text):
+        return []
+
+    first_entries = parse_oxford_provider_entries(
+        first_response.text, first_response.url, clean_term
+    )
+    first_entry_ids = {entry.native_id for entry in first_entries if entry.native_id}
+    page_responses = [first_response]
+    linked_urls = _linked_oxford_entry_urls(
+        first_response.text, first_response.url, normalized, clean_term
+    )
+    for linked_url in linked_urls:
+        linked_slug = linked_url.rstrip("/").rsplit("/", 1)[-1]
+        if (
+            linked_url.rstrip("/") == first_response.url.rstrip("/")
+            or linked_slug in first_entry_ids
+        ):
+            continue
+        try:
+            response = retry_call(
+                lambda linked_url=linked_url: _fetch_page(linked_url),
+                retries=2,
+                base_sleep=1.0,
+            )
+        except Exception:
+            continue
+        if response.ok and not _oxford_page_is_misspelling(response.text):
+            page_responses.append(response)
+
+    entries: List[ProviderEntry] = []
+    seen_entry_ids = set()
+    for response in page_responses:
+        headword = _extract_oxford_headword(response.text)
+        if headword and not _headword_matches_term(headword, clean_term):
+            continue
+        for entry in parse_oxford_provider_entries(
+            response.text, response.url, clean_term
+        ):
+            identity = entry.native_id or (
+                entry.pos,
+                entry.pronunciation.audio_uk_url,
+            )
+            if identity in seen_entry_ids:
+                continue
+            seen_entry_ids.add(identity)
+            entries.append(entry)
+    return entries
 def fetch_oxford_image_url(term: str) -> str:
     clean_term = strip_pos_labels_from_term(term)
     if not clean_term:

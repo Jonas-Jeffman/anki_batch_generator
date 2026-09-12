@@ -39,6 +39,68 @@ from dictionary.common import (
 )
 
 
+def _belongs_to_sense(node, sense_node) -> bool:
+    parent = node.parent
+    while parent is not None:
+        if "Sense" in parent.classes:
+            return parent is sense_node
+        parent = parent.parent
+    return False
+
+
+def _text_without_classes(node, excluded_classes: set[str]) -> str:
+    parts: List[str] = []
+
+    def visit(current) -> None:
+        for child in current.children:
+            if isinstance(child, str):
+                parts.append(child)
+            elif not child.classes.intersection(excluded_classes):
+                visit(child)
+
+    visit(node)
+    return _clean_dictionary_text("".join(parts))
+
+
+def _stable_nonempty(values: List[str]) -> List[str]:
+    return list(dict.fromkeys(value for value in values if value))
+
+
+def _longman_sense_enrichment(sense_node) -> tuple[List[str], List[str]]:
+    owned_nodes = [
+        node for node in sense_node.descendants() if _belongs_to_sense(node, sense_node)
+    ]
+    synonym_nodes = []
+    for node in owned_nodes:
+        if "SYN" in node.classes:
+            synonym_nodes.append(node)
+        elif (
+            "BREQUIV" in node.classes
+            and any(
+                "synopp" in descendant.classes
+                and _clean_dictionary_text(descendant.text_content()).upper() == "SYN"
+                for descendant in node.descendants()
+            )
+            and not any("SYN" in descendant.classes for descendant in node.descendants())
+        ):
+            synonym_nodes.append(node)
+    synonyms = _stable_nonempty([
+        _text_without_classes(node, {"synopp", "geo"})
+        for node in synonym_nodes
+    ])
+
+    thesaurus_terms: List[str] = []
+    for thesaurus_node in (
+        node for node in owned_nodes if "Thesref" in node.classes
+    ):
+        thesaurus_terms.extend(
+            _clean_dictionary_text(node.text_content())
+            for node in thesaurus_node.descendants()
+            if "REFHWD" in node.classes and _belongs_to_sense(node, sense_node)
+        )
+    return synonyms, _stable_nonempty(thesaurus_terms)
+
+
 def fetch_english_from_longman(term: str) -> EnglishPronunciationInfo:
     normalized = term.strip().replace(" ", "-")
     if not normalized:
@@ -282,6 +344,7 @@ def parse_longman_provider_entries(
                         dom_path=f"{sense_path} .EXAMPLE:nth-of-type({example_index})",
                     )
                 )
+            synonyms, thesaurus_terms = _longman_sense_enrichment(sense_node)
             senses.append(
                 ProviderSense(
                     source="longman",
@@ -291,6 +354,8 @@ def parse_longman_provider_entries(
                     examples=examples,
                     dom_path=sense_path,
                     definition_dom_path=f"{sense_path} > .DEF",
+                    synonyms=synonyms,
+                    thesaurus_terms=thesaurus_terms,
                 )
             )
         entries.append(

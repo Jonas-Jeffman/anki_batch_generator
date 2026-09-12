@@ -12,6 +12,8 @@ DEFAULT_SLEEP = 2.0
 LLM_SCHEMA_VERSION = "no_zh_v5_safe_ipa"
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+EXAMPLE_AUDIO_ICON_PATH = SCRIPT_DIR / "signs" / "audio_bre_initial.svg"
+EXAMPLE_AUDIO_ICON_FILENAME = EXAMPLE_AUDIO_ICON_PATH.name
 DEFAULT_TERMS_JSON = SCRIPT_DIR / "terms.json"
 DEFAULT_TERMS_TXT = SCRIPT_DIR / "terms.txt"
 LOCAL_OPENAI_KEY_FILE = SCRIPT_DIR / ".openai_api_key"

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import List, Optional
 
@@ -13,6 +14,40 @@ from utils import retry_call, slugify, stable_guid
 
 
 synthesize_tts_to_file = generate_speech
+
+
+def _audio_source_metadata_path(filepath: Path) -> Path:
+    return filepath.with_name(f"{filepath.name}.source.json")
+
+
+def _read_cached_audio_url(filepath: Path) -> str:
+    try:
+        data = json.loads(
+            _audio_source_metadata_path(filepath).read_text(encoding="utf-8")
+        )
+        return normalize_dictionary_url(str(data.get("source_url") or ""))
+    except (OSError, ValueError, TypeError):
+        return ""
+
+
+def _write_cached_audio_url(filepath: Path, source_url: str) -> None:
+    metadata_path = _audio_source_metadata_path(filepath)
+    temporary_path = metadata_path.with_suffix(f"{metadata_path.suffix}.tmp")
+    try:
+        temporary_path.write_text(
+            json.dumps(
+                {"source_url": normalize_dictionary_url(source_url)},
+                ensure_ascii=False,
+                sort_keys=True,
+            ),
+            encoding="utf-8",
+        )
+        temporary_path.replace(metadata_path)
+    except OSError:
+        try:
+            temporary_path.unlink(missing_ok=True)
+        except OSError:
+            pass
 
 
 def _is_plausible_mp3(path: Path) -> bool:
@@ -110,14 +145,19 @@ def ensure_english_audio(
     if not url_queue:
         print(f"[media][audio] term={item.term} status=not_found")
         return None
-    if _is_plausible_mp3(filepath):
-        cached_url = url_queue[0]
+    cached_url = _read_cached_audio_url(filepath)
+    if (
+        _is_plausible_mp3(filepath)
+        and cached_url
+        and cached_url == url_queue[0]
+    ):
         cached_source = dictionary_source_from_url(cached_url)
         print(f"[media][audio] term={item.term} source={cached_source} url={cached_url or '(unknown cached file)'} file={filename} status=cached")
         return AudioAsset(filename=filename, filepath=filepath, source_type="audio", source=cached_source, source_url=cached_url)
 
     downloaded_url = _try_download_english_mp3_from_urls(url_queue, filepath)
     if downloaded_url:
+        _write_cached_audio_url(filepath, downloaded_url)
         audio_source = dictionary_source_from_url(downloaded_url)
         print(f"[media][audio] term={item.term} source={audio_source} url={downloaded_url} file={filename} status=downloaded")
         return AudioAsset(filename=filename, filepath=filepath, source_type="audio", source=audio_source, source_url=downloaded_url)
