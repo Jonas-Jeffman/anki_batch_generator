@@ -11,10 +11,9 @@ from unittest.mock import Mock, call, patch
 from tests import support  # noqa: F401 - installs offline dependency stubs
 
 import anki_batch_generator
-import application
-import cli
-from anki.exporter import create_deck_apkg
-from models import AudioAsset, BuiltCard, CardBuildResult, InputItem
+from anki_generator import application, cli
+from anki_generator.export.anki import create_deck_apkg
+from anki_generator.models import AudioAsset, BuiltCard, CardBuildResult, InputItem
 
 
 def make_args(**overrides):

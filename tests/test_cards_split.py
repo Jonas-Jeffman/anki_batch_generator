@@ -5,10 +5,10 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-import card_builder
-from cache import CacheStore
-from cards import builder, preview, renderers
-from models import InputItem
+from anki_generator.compat import card_builder
+from anki_generator.llm.cache import CacheStore
+from anki_generator.cards import builder, preview, renderers
+from anki_generator.models import InputItem
 
 
 MODE_RESULTS = {

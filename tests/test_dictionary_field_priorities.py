@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import unittest
 
-from dictionary import canonical, pronunciation, service
-from models import DictionaryEntryResult
+from anki_generator.dictionary import pronunciation, service
+from anki_generator.senses import alignment as canonical
+from anki_generator.models import DictionaryEntryResult
 
 
 def entry(source: str, **values) -> DictionaryEntryResult:

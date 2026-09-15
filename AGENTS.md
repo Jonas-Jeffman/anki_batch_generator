@@ -2,9 +2,11 @@
 
 ## Project Structure & Module Organization
 
-This is a Python 3.10+ command-line project. `anki_batch_generator.py` is the entry point and coordinates argument parsing, card generation, and `.apkg` output. Shared models, configuration, input loading, and cache helpers live in `common.py`. Card rendering and LLM-backed content generation belong in `card_builder.py`; dictionary scraping and source selection belong in `dictionary_sources.py`; media download and tracing utilities belong in `media_assets.py`.
+This is a Python 3.10+ command-line project. `anki_batch_generator.py` is the stable entry point; all production modules live under `anki_generator/`. `application.py` orchestrates the CLI workflow. `inputs/` loads vocabulary and parses English terms; `dictionary/` handles provider parsing and field selection; `senses/` handles alignment and persistent identities; `cards/` builds, renders, and previews cards; `llm/` owns prompts, API calls, and response caches; `media/` handles downloads; `export/anki.py` writes `.apkg` files. Shared configuration and models remain in `anki_generator/config.py` and `anki_generator/models.py`.
 
-Sample inputs are `terms.example.json` and `input_example.csv`. `anki_audio/`, `anki_images/`, and `anki_image_review/` contain generated or reviewable media; avoid committing bulk generated artifacts unless they are intentional fixtures. The Colab workflow is in `anki_batch_generator_colab.ipynb`.
+Use absolute imports starting with `anki_generator`. Historical aggregate exports are isolated in `anki_generator/compat/`; production modules must not depend on them. See `docs/architecture.md` for migration details and module boundaries.
+
+Sample inputs live in `examples/`; the CSV is historical reference, not a supported CLI format. The Colab workflow is in `notebooks/anki_batch_generator_colab.ipynb`, and dictionary reference material is in `docs/dictionary/`. Bundled icons live in `anki_generator/resources/`. Keep user vocabulary and key files beside the root CLI entry point. `anki_audio/`, `anki_images/`, and `anki_image_review/` retain their existing runtime locations; avoid committing bulk generated artifacts.
 
 ## Build, Test, and Development Commands
 
@@ -16,13 +18,14 @@ source .venv/bin/activate
 python -m pip install -r requirements.txt
 ```
 
-Run the lightweight, network-free checks with:
+Run the network-free regression suite and lightweight entry-point checks with:
 
 ```bash
+python -m unittest discover -s tests -q
 python anki_batch_generator.py --self-test
 ```
 
-Generate a deck locally with `python anki_batch_generator.py --mode en_word --deck-name "English::Daily"`. Use `--terms-file terms.example.json` for sample data, or `--dict-test-only` to inspect English dictionary extraction without calling OpenAI or building a deck.
+The regression suite supplies offline HTTP stubs; direct CLI execution requires the runtime dependencies above. Generate a deck locally with `python anki_batch_generator.py --mode en_word --deck-name "English::Daily"`. Use `--terms-file examples/terms.example.json` for sample data, or `--dict-test-only` to inspect English dictionary extraction without calling OpenAI or building a deck.
 
 ## Coding Style & Naming Conventions
 
@@ -30,7 +33,7 @@ Follow existing Python style: four-space indentation, type hints, `from __future
 
 ## Testing Guidelines
 
-There is no separate test framework or coverage threshold. Extend `run_self_test()` for fast deterministic regression checks, especially parsing, URL normalization, and filtering logic. Do not require API credentials or network access in self-tests. For media or dictionary changes, also inspect the preview JSON and relevant files under `anki_image_review/`.
+Tests use standard-library `unittest`, recorded dictionary fixtures, and golden outputs under `tests/`. There is no coverage threshold. Keep tests deterministic and network-free. Extend `run_self_test()` for lightweight pure-function checks, and add regression tests for module boundaries, resource paths, parsing, and filtering. Structural refactors must preserve existing golden outputs, cache keys, GUIDs, and user-data paths. For media or dictionary changes, also inspect preview JSON and relevant files under `anki_image_review/`.
 
 ## Commit & Pull Request Guidelines
 

@@ -1,6 +1,6 @@
 # Anki Batch Generator
 
-用 **OpenAI 兼容 API**（官方或第三方转发）批量生成可导入 [Anki](https://apps.ankiweb.net/) 的 `.apkg` 卡组：英语 / 日语词汇、面试题、论文要点、兴趣知识等。生成内容含释义与例句，英文卡会尽量嵌入 **词典 MP3** 或 **TTS 兜底**，并在包内附带 `[sound:…]` 便于离线复习。
+用 **OpenAI 兼容 API**（官方或第三方转发）批量生成可导入 [Anki](https://apps.ankiweb.net/) 的 `.apkg` 卡组：英语 / 日语词汇、面试题、论文要点、兴趣知识等。生成内容含释义与例句，英文卡会尽量嵌入 **英式词典 MP3**，日语卡使用 **TTS**，下载或合成的媒体会随卡组打包，便于离线复习。
 
 ---
 
@@ -8,7 +8,7 @@
 
 | 模式 | 说明 |
 |------|------|
-| `en_word` | 英语词：正面居中加粗单词 + 音标；背面释义、`Example:` 换行后接例句；优先英式词典音频（若 API 提供 UK 链接） |
+| `en_word` | 英语词：正面居中加粗单词 + 音标；背面释义、`Example:` 换行后接例句；按词性与义项展开，优先英式词典音频 |
 | `ja_word` | 日语词：正面词条；背面假名读音、日文释义与例句 |
 | `interview` | 面试：题目 + 精简回答 + 要点列表 + 例子 |
 | `paper` | 论文 / 概念：核心思想 + 意义 + 例子 |
@@ -34,7 +34,7 @@
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
-cd YOUR_REPO/anki   # 若仓库根目录即本工具，则 cd 到该目录
+cd YOUR_REPO   # 包含 anki_batch_generator.py 和 anki_generator/ 的仓库根目录
 
 python3 -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
@@ -178,7 +178,9 @@ python anki_batch_generator.py \
 ]
 ```
 
-不传 `--terms-file` / `--terms-json` 时会自动使用该文件。仓库内提供 **`terms.example.json`** 可复制为 `terms.json` 后自行修改。
+不传 `--terms-file` / `--terms-json` 时会自动使用该文件。仓库内提供 **`examples/terms.example.json`**，可复制为根目录的 `terms.json` 后自行修改。
+
+英语输入支持 `nail`（展开词性与义项）、`nail noun`（限定词性）、`nail noun 2`（限定义项编号）。编号保存在 `anki_canonical_manifest.json`，不要当作普通 LLM 缓存删除。
 
 ### `terms.txt`
 
@@ -242,14 +244,16 @@ python anki_batch_generator.py \
 | `--output` | 输出 `.apkg`，默认 `anki_batch_output.apkg` |
 | `--preview-json` | 预览 JSON，默认 `anki_batch_preview.json` |
 | `--cache-path` | LLM 缓存，默认 `anki_batch_cache.json` |
-| `--media-dir` | 临时音频目录，默认 `anki_media` |
-| `--model` | 文本模型，默认见脚本内常量（可按账号改为 `gpt-4o-mini` 等） |
-| `--tts-model` | TTS 模型 |
-| `--tts-voice-en` / `--tts-voice-ja` | TTS 音色，默认 `alloy` |
+| `--media-dir` | 默认 `anki_media`；实际在其父目录下使用 `anki_audio/`、`anki_images/`、`anki_image_review/` |
+| `--model` | 文本模型，默认见 `anki_generator/config.py`（可按账号改为 `gpt-4o-mini` 等） |
+| `--tts-model` | 日语 TTS 模型 |
+| `--tts-voice-en` / `--tts-voice-ja` | 默认 `alloy`；英文参数保留，但当前英文只使用词典音频，没有 TTS 兜底 |
 | `--reasoning-effort` | `gpt-5*` 系列时：`minimal` \| `low` \| `medium` \| `high` |
 | `--openai-api-key` | 见上文；为空则读环境变量或 `.openai_api_key` |
 | `--openai-base-url` | 兼容网关 Base；为空则读 `OPENAI_BASE_URL` |
 | `--sleep` | 每条间隔秒数，减轻限流 |
+| `--self-test` | 纯函数自检，不需要模式、牌组和 API 密钥 |
+| `--dict-test-only` | 英语词典字段预览，不调用 OpenAI、不生成牌组；不是完整义项对齐测试 |
 
 ---
 
@@ -260,7 +264,9 @@ python anki_batch_generator.py \
 | `anki_batch_output.apkg` | 用 Anki：**文件 → 导入** |
 | `anki_batch_preview.json` | 每张卡 Front/Back 预览 |
 | `anki_batch_cache.json` | LLM JSON 缓存（删之可强制重新生成） |
-| `anki_media/` | 临时下载/合成的 mp3（已打包进 apkg） |
+| `anki_canonical_manifest.json` | 稳定义项身份与编号，位于 LLM 缓存同目录；增量更新时应保留 |
+| `anki_audio/`、`anki_images/` | 下载/合成的媒体（已打包进 apkg） |
+| `anki_image_review/` | 供人工检查的图片副本 |
 
 ---
 
@@ -268,52 +274,53 @@ python anki_batch_generator.py \
 
 若本机网络访问官方 API 不便，可在 Colab 中运行：
 
-1. 打开仓库中的 **`anki_batch_generator_colab.ipynb`**
-2. 按笔记本顺序：安装依赖 → 上传 `anki_batch_generator.py` → 配置 `terms` 与密钥 → 运行 → 下载 `.apkg`
+1. 打开 **`notebooks/anki_batch_generator_colab.ipynb`**。
+2. 按顺序：安装依赖 → 上传完整项目 ZIP → 配置 `terms` 与密钥 → 运行 → 下载 `.apkg`。
+
+项目已模块化，不能只上传入口脚本。ZIP 必须包含 `anki_batch_generator.py` 和完整的 `anki_generator/`（含 `resources/`），不要包含密钥或私人数据。
 
 Colab 侧建议在 **密钥** 中保存 `OPENAI_API_KEY`。
 
 ---
 
-## 仓库内其它脚本
+## 项目结构
 
-| 文件 | 说明 |
-|------|------|
-| `batch_anki_generator.py` | 较早版本：从 **CSV** 混排多模式一行；外链播放为主 |
-| `anki_batch_generator_optimized.py` | 历史优化副本；日常以 `anki_batch_generator.py` 为准即可 |
-| `input_example.csv` | 供 `batch_anki_generator.py` 使用的示例 |
-
----
-
-## 上传到 GitHub（命令示例）
-
-在**本工具目录**初始化并推送（将 `YOUR_USER` / `YOUR_REPO` 换成你的）：
-
-```bash
-cd /path/to/anki   # 含 README.md、anki_batch_generator.py 的目录
-
-git init
-git branch -M main
-git add README.md requirements.txt .gitignore \
-  anki_batch_generator.py anki_batch_generator_colab.ipynb \
-  batch_anki_generator.py anki_batch_generator_optimized.py \
-  input_example.csv terms.example.json
-
-git commit -m "Add Anki batch generator and documentation"
-git remote add origin https://github.com/YOUR_USER/YOUR_REPO.git
-git push -u origin main
+```text
+anki_batch_generator.py       # 稳定 CLI 入口
+anki_generator/               # 生产代码统一命名空间
+  application.py, cli.py      # 编排与命令行
+  config.py, models.py        # 配置与共享模型
+  utils.py                   # 少量通用函数
+  inputs/                    # JSON/TXT 加载、英语输入语法
+  dictionary/                # 三家词典解析与字段选择
+  senses/                    # 跨词典义项对齐、稳定身份清单
+  cards/                     # 模式分发、英语制卡、渲染、预览
+  llm/                       # 客户端、提示词、内容请求、缓存
+  media/                     # 音频、图片下载与校验
+  export/                    # Anki 打包
+  resources/                 # 随程序分发的图标
+  compat/                    # 历史聚合导出；新代码不应依赖
+examples/                    # 示例词表；CSV 仅作历史参考
+notebooks/                   # Colab 工作流
+docs/                        # 架构说明与词典参考资料
+tests/                       # 离线回归测试、词典快照、黄金结果
 ```
 
-若仓库已存在，只需：
+模块职责、导入迁移和数据路径约定见 [架构说明](docs/architecture.md)。根目录的 `terms.json`、`.openai_api_key` 和已有生成媒体没有迁移。
+
+## 测试
+
+在仓库根目录运行：
 
 ```bash
-git add .
-git status   # 确认没有 .openai_api_key、.venv、*.apkg 等
-git commit -m "docs: expand README for Anki batch generator"
-git push
+python -m unittest discover -s tests -q
+# 安装 requirements.txt 后，还可直接执行入口自检：
+python anki_batch_generator.py --self-test
 ```
 
-**务必**在推送前检查 `git status`：不要提交 `.openai_api_key`、`anki_batch_cache.json`、个人 `terms.json`（若含隐私）等；`.gitignore` 已忽略常见敏感项与生成物。
+测试使用词典快照和离线 HTTP 替身，不消耗 API 额度；通过离线测试不等于在线抓取或各 Anki 客户端已验证。
+
+提交前检查 `git status`，不要提交密钥、LLM 缓存、私人词表和义项清单。`terms.json` 已被版本控制跟踪，修改为私人内容后需特别注意。
 
 ---
 

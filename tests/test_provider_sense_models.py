@@ -8,7 +8,7 @@ import unittest
 from unittest.mock import patch
 from urllib.parse import urljoin
 
-from dictionary import cambridge, longman, oxford
+from anki_generator.dictionary import cambridge, longman, oxford
 from tests.dictionary_page_snapshot import read_page
 from tests.support import DictionaryFixtureHTTP, GOLDEN_ROOT, load_json
 
@@ -62,7 +62,7 @@ class ProviderSenseModelTests(unittest.TestCase):
 
     def test_yield_longman_enrichment_stays_with_its_native_sense(self):
         entries = longman.parse_longman_provider_entries(
-            (Path(__file__).resolve().parents[1] / "yield" / "yield_longman.md").read_text(
+            (Path(__file__).resolve().parents[1] / "docs" / "dictionary" / "yield" / "yield_longman.md").read_text(
                 encoding="utf-8"
             ),
             "https://www.ldoceonline.com/dictionary/yield",

@@ -5,8 +5,8 @@ import unittest
 
 from tests.support import GOLDEN_ROOT, load_json
 
-import card_builder
-from common import InputItem
+from anki_generator.compat import card_builder
+from anki_generator.models import InputItem
 
 
 CASES = {

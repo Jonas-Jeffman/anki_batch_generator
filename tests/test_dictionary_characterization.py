@@ -6,9 +6,9 @@ from unittest.mock import patch
 
 from tests.support import DictionaryFixtureHTTP, GOLDEN_ROOT, load_json, normalized_calls
 
-import dictionary_sources
-from dictionary import cambridge, longman, oxford
-from english_terms import parse_english_term
+from anki_generator.compat import dictionary_sources
+from anki_generator.dictionary import cambridge, longman, oxford
+from anki_generator.inputs.english import parse_english_term
 
 
 TERMS = ("nail noun", "nail verb", "rose", "play hooky")

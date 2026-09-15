@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from canonical_store import (
+from anki_generator.senses.store import (
     ACTIVE,
     INACTIVE,
     CanonicalStore,
@@ -13,8 +13,8 @@ from canonical_store import (
     canonical_guid_seed,
     definition_fingerprint,
 )
-from models import CanonicalSense, ProviderSense
-from utils import stable_guid
+from anki_generator.models import CanonicalSense, ProviderSense
+from anki_generator.utils import stable_guid
 
 
 def provider_sense(source: str, native_id: str, definition: str) -> ProviderSense:

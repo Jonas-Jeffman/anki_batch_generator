@@ -10,15 +10,15 @@ from unittest.mock import patch
 
 from tests import support  # noqa: F401 - installs offline dependency stubs
 
-from anki import exporter
-from canonical_store import canonical_guid_seed
-from cards.preview import SENSE_PREVIEW_SCHEMA_VERSION, write_preview_json
-from models import (
+from anki_generator.export import anki as exporter
+from anki_generator.senses.store import canonical_guid_seed
+from anki_generator.cards.preview import SENSE_PREVIEW_SCHEMA_VERSION, write_preview_json
+from anki_generator.models import (
     BuiltCard,
     ResolvedCanonicalContent,
     ResolvedContentField,
 )
-from utils import stable_anki_id, stable_guid
+from anki_generator.utils import stable_anki_id, stable_guid
 
 
 class _Model:

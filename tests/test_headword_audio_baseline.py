@@ -4,8 +4,8 @@ import unittest
 
 from tests import support  # noqa: F401 - installs offline dependency stubs
 
-from cards.builder import resolve_canonical_content
-from models import (
+from anki_generator.cards.english import resolve_canonical_content
+from anki_generator.models import (
     CanonicalSense,
     CanonicalSenseRequest,
     InputItem,
@@ -14,7 +14,7 @@ from models import (
     WordPronunciation,
 )
 from tests.support import GOLDEN_ROOT, load_json
-from utils import slugify, stable_guid
+from anki_generator.utils import slugify, stable_guid
 
 
 OXFORD_MUTUAL = (

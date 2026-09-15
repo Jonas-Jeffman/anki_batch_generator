@@ -4,11 +4,11 @@ import unittest
 
 from tests import support  # noqa: F401 - installs offline dependency stubs
 
-from dictionary.pronunciation import (
+from anki_generator.dictionary.pronunciation import (
     headword_audio_selection_scope,
     ordered_headword_audio_urls,
 )
-from models import ProviderEntry, WordPronunciation
+from anki_generator.models import ProviderEntry, WordPronunciation
 
 
 def entry(source: str, word: str, pos: str, audio_url: str) -> ProviderEntry:

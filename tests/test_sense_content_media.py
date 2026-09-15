@@ -7,11 +7,11 @@ from unittest.mock import Mock, patch
 
 from tests import support  # noqa: F401 - installs offline dependency stubs
 
-from cards.builder import resolve_canonical_content
-from cards.renderers import build_canonical_en_word_card
-from config import EXAMPLE_AUDIO_ICON_FILENAME, EXAMPLE_AUDIO_ICON_PATH
-from media import audio, images
-from models import (
+from anki_generator.cards.english import resolve_canonical_content
+from anki_generator.cards.renderers import build_canonical_en_word_card
+from anki_generator.config import EXAMPLE_AUDIO_ICON_FILENAME, EXAMPLE_AUDIO_ICON_PATH
+from anki_generator.media import audio, images
+from anki_generator.models import (
     AudioAsset,
     CanonicalSense,
     CanonicalSenseRequest,

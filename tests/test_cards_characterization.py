@@ -9,10 +9,11 @@ from unittest.mock import patch
 
 from tests.support import GOLDEN_ROOT, load_json
 
-import card_builder
-from cards import builder as cards_builder
-from common import AudioAsset, BuiltCard, CacheStore, DictionaryEntryResult, InputItem, stable_guid
-from utils import slugify
+from anki_generator.compat import card_builder
+from anki_generator.cards import builder as cards_builder
+from anki_generator.models import AudioAsset, BuiltCard, DictionaryEntryResult, InputItem
+from anki_generator.llm.cache import CacheStore
+from anki_generator.utils import slugify, stable_guid
 
 
 LLM_RESULTS = {

@@ -8,10 +8,10 @@ from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-import media_assets
-from media import audio, images
-from models import InputItem
-from utils import slugify, stable_guid
+from anki_generator.compat import media_assets
+from anki_generator.media import audio, images
+from anki_generator.models import InputItem
+from anki_generator.utils import slugify, stable_guid
 
 
 def mp3_bytes() -> bytes:

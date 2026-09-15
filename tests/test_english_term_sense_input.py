@@ -3,9 +3,9 @@ from __future__ import annotations
 import argparse
 import unittest
 
-from english_terms import parse_english_term
-from models import ParsedEnglishTerm
-from terms import load_items
+from anki_generator.inputs.english import parse_english_term
+from anki_generator.models import ParsedEnglishTerm
+from anki_generator.inputs.loader import load_items
 
 
 class EnglishTermSenseInputTests(unittest.TestCase):

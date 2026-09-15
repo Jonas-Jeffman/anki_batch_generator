@@ -6,9 +6,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from cache import CacheStore, build_alignment_cache_key
-from dictionary import canonical
-from models import ProviderEntry, ProviderSense, WordPronunciation
+from anki_generator.llm.cache import CacheStore, build_alignment_cache_key
+from anki_generator.senses import alignment as canonical
+from anki_generator.models import ProviderEntry, ProviderSense, WordPronunciation
 
 
 def sense(source: str, native_id: str, definition: str, pos: str = "noun") -> ProviderSense:

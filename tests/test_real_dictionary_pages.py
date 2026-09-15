@@ -13,7 +13,7 @@ from tests.dictionary_page_snapshot import (
 )
 from tests.support import GOLDEN_ROOT, load_json
 
-from dictionary import cambridge, longman, oxford
+from anki_generator.dictionary import cambridge, longman, oxford
 
 
 class RealDictionaryPageTests(unittest.TestCase):

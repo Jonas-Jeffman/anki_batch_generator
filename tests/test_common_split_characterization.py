@@ -7,13 +7,11 @@ from pathlib import Path
 
 from tests.support import GOLDEN_ROOT, load_json
 
-import cache
-import common
-import config
-import english_terms
-import models
-import terms
-import utils
+from anki_generator.llm import cache
+from anki_generator.compat import common
+from anki_generator import config, models, utils
+from anki_generator.inputs import english as english_terms
+from anki_generator.inputs import loader as terms
 
 
 class CommonSplitCharacterizationTests(unittest.TestCase):

@@ -8,8 +8,9 @@ from unittest.mock import patch
 from tests.support import GOLDEN_ROOT, load_json
 
 import anki_batch_generator
-from anki import exporter
-from common import BuiltCard, stable_anki_id, stable_guid
+from anki_generator.export import anki as exporter
+from anki_generator.models import BuiltCard
+from anki_generator.utils import stable_anki_id, stable_guid
 
 
 class _Model:

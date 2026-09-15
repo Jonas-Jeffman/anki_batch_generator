@@ -6,9 +6,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock, call, patch
 
-import card_builder
-from llm import client as client_module
-from llm import prompts
+from anki_generator.compat import card_builder
+from anki_generator.llm import client as client_module
+from anki_generator.llm import prompts
 
 
 class _Response:
@@ -74,7 +74,7 @@ class LLMClientSplitTests(unittest.TestCase):
 
     def test_empty_response_retries_then_preserves_error(self):
         sdk = _sdk_with_completions(["", " ", None])
-        with patch("utils.time.sleep") as sleep:
+        with patch("anki_generator.utils.time.sleep") as sleep:
             with self.assertRaisesRegex(ValueError, "OpenAI returned empty content"):
                 client_module.LLMClient(sdk).generate_json(
                     model="gpt-5.4",
@@ -87,7 +87,7 @@ class LLMClientSplitTests(unittest.TestCase):
 
     def test_invalid_json_retries_and_raises_decode_error(self):
         sdk = _sdk_with_completions(["not json"] * 3)
-        with patch("utils.time.sleep"):
+        with patch("anki_generator.utils.time.sleep"):
             with self.assertRaises(json.JSONDecodeError):
                 client_module.LLMClient(sdk).generate_json(
                     model="gpt-5.4",
@@ -99,7 +99,7 @@ class LLMClientSplitTests(unittest.TestCase):
 
     def test_transient_json_failure_retries_to_success(self):
         sdk = _sdk_with_completions([RuntimeError("temporary"), '{"ok": true}'])
-        with patch("utils.time.sleep") as sleep:
+        with patch("anki_generator.utils.time.sleep") as sleep:
             result = client_module.LLMClient(sdk).generate_json(
                 model="gpt-5.4",
                 system_prompt="s",
@@ -134,7 +134,7 @@ class LLMClientSplitTests(unittest.TestCase):
         sdk.audio.speech = type("Speech", (), {})()
         sdk.audio.speech.with_streaming_response = type("Streaming", (), {"create": create})()
 
-        with patch("utils.time.sleep") as sleep:
+        with patch("anki_generator.utils.time.sleep") as sleep:
             client_module.LLMClient(sdk).generate_speech(
                 model="tts-model", voice="alloy", text="hello", output_path=destination
             )

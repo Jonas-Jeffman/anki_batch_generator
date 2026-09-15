@@ -7,10 +7,10 @@ from unittest.mock import patch
 
 from tests import support  # noqa: F401 - installs offline dependency stubs
 
-from cache import CacheStore
-from canonical_store import CanonicalStore
-from cards import builder
-from models import (
+from anki_generator.llm.cache import CacheStore
+from anki_generator.senses.store import CanonicalStore
+from anki_generator.cards import builder, english
+from anki_generator.models import (
     AudioAsset,
     BuiltCard,
     CanonicalSense,
@@ -20,9 +20,9 @@ from models import (
     ProviderSense,
     WordPronunciation,
 )
-from dictionary.cambridge import parse_cambridge_provider_entries
-from dictionary.longman import parse_longman_provider_entries
-from dictionary.oxford import parse_oxford_provider_entries
+from anki_generator.dictionary.cambridge import parse_cambridge_provider_entries
+from anki_generator.dictionary.longman import parse_longman_provider_entries
+from anki_generator.dictionary.oxford import parse_oxford_provider_entries
 from tests.dictionary_page_snapshot import read_page
 
 
@@ -80,12 +80,12 @@ class CardExpansionTests(unittest.TestCase):
             return [canonical(word, pos, index) for index in range(1, pos_counts[pos] + 1)]
 
         with (
-            patch.object(builder, "fetch_cambridge_provider_entries", return_value=[cambridge]),
-            patch.object(builder, "fetch_longman_provider_entries", return_value=[]),
-            patch.object(builder, "fetch_oxford_provider_entries", return_value=[]),
-            patch.object(builder, "align_canonical_senses", side_effect=aligned) as align,
+            patch.object(english, "fetch_cambridge_provider_entries", return_value=[cambridge]),
+            patch.object(english, "fetch_longman_provider_entries", return_value=[]),
+            patch.object(english, "fetch_oxford_provider_entries", return_value=[]),
+            patch.object(english, "align_canonical_senses", side_effect=aligned) as align,
         ):
-            requests = builder.expand_english_item(
+            requests = english.expand_english_item(
                 client=None,
                 item=InputItem("en_word", term),
                 model="fixture-model",
@@ -167,25 +167,25 @@ class CardExpansionTests(unittest.TestCase):
 
         with (
             patch.object(
-                builder,
+                english,
                 "fetch_cambridge_provider_entries",
                 side_effect=lambda word: entries("cambridge", word),
             ),
             patch.object(
-                builder,
+                english,
                 "fetch_longman_provider_entries",
                 side_effect=lambda word: entries("longman", word),
             ),
             patch.object(
-                builder,
+                english,
                 "fetch_oxford_provider_entries",
                 side_effect=lambda word: entries("oxford", word),
             ),
-            patch.object(builder, "align_canonical_senses", side_effect=aligned),
+            patch.object(english, "align_canonical_senses", side_effect=aligned),
         ):
             results = {}
             for term in ("trunk", "trunk noun", "trunk noun 2", "nail verb"):
-                results[term] = builder.expand_english_item(
+                results[term] = english.expand_english_item(
                     client=None,
                     item=InputItem("en_word", term),
                     model="fixture-model",

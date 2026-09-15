@@ -6,9 +6,9 @@ from unittest.mock import Mock, patch
 
 from tests.support import DictionaryFixtureHTTP, FixtureResponse, GOLDEN_ROOT, load_json
 
-import dictionary_sources
-from dictionary import cambridge, longman, oxford, service
-from models import DictionaryEntryResult, DictionarySenseCandidate
+from anki_generator.compat import dictionary_sources
+from anki_generator.dictionary import cambridge, longman, oxford, service
+from anki_generator.models import DictionaryEntryResult, DictionarySenseCandidate
 
 
 class DictionarySplitTests(unittest.TestCase):
