@@ -162,6 +162,56 @@ python anki_batch_generator.py \
 
 脚本会自动补全为 `.../v1`。若网关 **不支持 TTS**，仍会生成卡片，只是可能没有嵌入音频。
 
+### 使用 OpenRouter GPT
+
+无需更换 SDK 或修改代码，复用现有配置即可。此时 `OPENAI_API_KEY` 必须填写 **OpenRouter 签发的 Key**，变量名仅为兼容；程序不会自动读取 `OPENROUTER_API_KEY`。不要将真实 Key 写进生成命令的参数、仓库或截图；以下仅为占位符，实际设置时避免将密钥保存到 shell 历史。
+
+Bash：
+
+```bash
+export OPENAI_API_KEY="<你的 OpenRouter Key>"
+export OPENAI_BASE_URL="https://openrouter.ai/api/v1"
+python3 anki_batch_generator.py \
+  --mode interview \
+  --terms-json '["What is a hash table?"]' \
+  --deck-name "OpenRouter::Smoke" \
+  --model "openai/gpt-4.1" \
+  --cache-path "anki_openrouter_cache.json"
+```
+
+Windows PowerShell 设置环境变量：
+
+```powershell
+$env:OPENAI_API_KEY = "<你的 OpenRouter Key>"
+$env:OPENAI_BASE_URL = "https://openrouter.ai/api/v1"
+```
+
+随后使用相同 CLI 参数运行脚本（按本机环境使用 `python` 或 `python3`）；上面的反斜杠续行语法仅适用于 Bash，PowerShell 可将命令写为一行。旧版 PowerShell 调用原生命令时可能需要额外处理内联 JSON 的引号，也可改用 `--terms-file` 读取 JSON 文件。
+
+示例使用 `interview`，不会请求词典或音频；英语模式的词义对齐和内容生成也会一起切换到同一个 OpenRouter 客户端。执行生成命令会调用付费 API，请先确认账号权限、余额和模型支持。本节仅提供配置说明，不代表已经验证线上服务。
+
+注意以下边界：
+
+- **模型：** 必须显式传入带命名空间的 OpenRouter 模型 ID，例如 `openai/gpt-4.1`。默认模型仍为 `gpt-5.4`，不会自动转换为 `openai/gpt-5.4`。运行前请确认示例 GPT-4.1 在账号中可用，并支持当前请求的 `response_format={"type":"json_object"}` 和 `temperature=0.2`。
+- **GPT-5：** 当前推理参数判断不识别 `openai/gpt-5...` 前缀，因此不能依赖 `--reasoning-effort` 对这些模型生效；本次接入未适配或验证 GPT-5 参数。
+- **缓存：** 使用独立的 `--cache-path anki_openrouter_cache.json`，避免与其他服务复用结果；相同路径仍遵循原有缓存规则，不会根据服务地址自动隔离。不要提交缓存文件。
+- **音频：** 本次仅接入文本 LLM，不迁移 TTS。日语 TTS 与文本共用客户端，不能保证 OpenRouter 提供兼容的语音端点，失败时可能没有音频；当前英语音频使用词典资源，不调用 TTS，也没有新增语音合成功能。
+- **配置优先级：** `--openai-api-key` 和 `--openai-base-url` 优先于环境变量。切换服务前检查命令行中是否残留其他服务的覆盖参数。
+
+回退官方 OpenAI API 时，先取消自定义 Base URL：
+
+```bash
+unset OPENAI_BASE_URL
+```
+
+Windows PowerShell：
+
+```powershell
+Remove-Item Env:OPENAI_BASE_URL
+```
+
+然后将 `OPENAI_API_KEY` 替换为官方 Key，显式使用官方模型 ID（例如 `--model gpt-4.1`，不带 `openai/`），改用独立的官方缓存路径，并移除命令行中残留的 `--openai-base-url` 或其他服务的 Key 覆盖参数。
+
 ---
 
 ## 准备词条
