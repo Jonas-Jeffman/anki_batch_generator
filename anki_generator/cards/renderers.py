@@ -12,8 +12,6 @@ def _definition_with_longman_enrichment(content: ResolvedCanonicalContent) -> st
     parts = [content.definition.value.strip()]
     if content.definition_synonyms:
         parts.append(f"SYN {', '.join(content.definition_synonyms)}")
-    if content.definition_thesaurus_terms:
-        parts.append(", ".join(content.definition_thesaurus_terms))
     return " ".join(part for part in parts if part)
 
 
@@ -120,12 +118,30 @@ def build_canonical_en_word_card(
             f'alt="{html_escape(content.image_alt or content.word)}" '
             'style="max-width:280px; max-height:220px; object-fit:contain;">'
         )
+    signpost_html = ""
+    signpost = content.definition_signpost.strip()
+    if signpost:
+        signpost_html = (
+            '<span class="sense-signpost" '
+            'style="background-color:#f18700; color:#fff; font-weight:bold; '
+            'padding:1px 5px; border-radius:3px;">'
+            f'{html_escape(signpost)}</span> '
+        )
+    thesaurus_terms = [
+        term.strip() for term in content.definition_thesaurus_terms if term.strip()
+    ]
+    thesaurus_html = ""
+    if thesaurus_terms:
+        thesaurus_html = (
+            '<br><b>Thesaurus:</b> '
+            f'{html_escape(", ".join(thesaurus_terms))}'
+        )
     prefix = f"{word_sound}<br>" if word_sound else ""
     back = (
-        f"{prefix}<b>Definition (EN):</b> "
+        f"{prefix}<b>Definition (EN):</b> {signpost_html}"
         f"{html_escape(_definition_with_longman_enrichment(content))}<br>"
         f"<b>Example:</b><br>{html_escape(content.example.value)}"
-        f"{example_control}{image_html}"
+        f"{example_control}{thesaurus_html}{image_html}"
     )
     return BuiltCard(
         front=front,

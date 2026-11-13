@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 import json
 import sqlite3
 import tempfile
@@ -10,11 +11,18 @@ from unittest.mock import patch
 
 from tests import support  # noqa: F401 - installs offline dependency stubs
 
+from anki_generator.cards.english import resolve_canonical_content
+from anki_generator.cards.renderers import build_canonical_en_word_card
+from anki_generator.dictionary.longman import parse_longman_provider_entries
 from anki_generator.export import anki as exporter
 from anki_generator.senses.store import canonical_guid_seed
 from anki_generator.cards.preview import SENSE_PREVIEW_SCHEMA_VERSION, write_preview_json
 from anki_generator.models import (
+    AudioAsset,
     BuiltCard,
+    CanonicalSense,
+    CanonicalSenseRequest,
+    InputItem,
     ResolvedCanonicalContent,
     ResolvedContentField,
 )
@@ -149,6 +157,93 @@ def card(content: ResolvedCanonicalContent) -> BuiltCard:
 
 
 class SensePreviewExportTests(unittest.TestCase):
+    def test_territory_html_to_cards_and_json_preview_offline(self):
+        page = (
+            Path(__file__).resolve().parents[1]
+            / "docs" / "dictionary" / "territory" / "territory_longman.md"
+        )
+        entries = parse_longman_provider_entries(
+            page.read_text(encoding="utf-8"),
+            "https://www.ldoceonline.com/dictionary/territory",
+            "territory",
+        )
+        cards = []
+        contents = []
+        for native_id, index, signpost in (
+            ("territory__1", 4, "government/military"),
+            ("territory__2", 8, "type of land"),
+        ):
+            # Deterministic fixture identities, not a claim about online alignment.
+            request = CanonicalSenseRequest(
+                item=InputItem("en_word", "territory"),
+                word="territory", pos="noun",
+                canonical_sense=CanonicalSense(
+                    word="territory", pos="noun", index=index,
+                    backbone_source="longman", backbone_sense_id=native_id,
+                    longman_sense_ids=[native_id],
+                    canonical_key=f"canonical::fixture-{native_id}",
+                ),
+                provider_entries=entries,
+            )
+            content = resolve_canonical_content(request)
+            card = build_canonical_en_word_card(
+                content,
+                [AudioAsset("word.mp3", Path("word.mp3"))],
+                AudioAsset("example.mp3", Path("example.mp3")),
+                None,
+            )
+            self.assertEqual(signpost, content.definition_signpost)
+            self.assertEqual(native_id, content.definition.sense_id)
+            self.assertEqual(native_id, content.example.sense_id)
+            self.assertIn(
+                f'>{signpost}</span> {content.definition.value}<br>', card.back
+            )
+            self.assertIn(content.example.value, card.back)
+            self.assertIn('preload="none" src="example.mp3"', card.back)
+            self.assertNotIn("occupied/enemy/disputed/hostile territory", card.back)
+            self.assertNotIn("uncharted/unexplored territory", card.back)
+            self.assertNotIn("countable", card.back)
+            self.assertNotIn("<b>Image:</b>", card.back)
+            baseline = build_canonical_en_word_card(
+                replace(content, definition_signpost="", definition_thesaurus_terms=[]),
+                [], None, None,
+            )
+            self.assertEqual(baseline.front, card.front)
+            self.assertEqual(baseline.guid_seed, card.guid_seed)
+            self.assertEqual(
+                canonical_guid_seed(content.canonical_key), card.guid_seed
+            )
+            if native_id == "territory__1":
+                self.assertEqual(["land"], content.definition_thesaurus_terms)
+                self.assertIn(
+                    "land that is owned or controlled by a particular country, "
+                    "ruler, or military force",
+                    card.back,
+                )
+                self.assertIn(
+                    "The plane was flying over enemy territory.", card.back
+                )
+                self.assertTrue(card.back.endswith(
+                    '</audio><br><b>Thesaurus:</b> land'
+                ))
+                self.assertEqual(1, card.back.count("Thesaurus:"))
+            else:
+                self.assertNotIn("Thesaurus:", card.back)
+                self.assertNotIn("government/military", card.back)
+            cards.append(card)
+            contents.append(content)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "preview.json"
+            write_preview_json(path, cards, contents)
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(SENSE_PREVIEW_SCHEMA_VERSION, payload["schema_version"])
+        self.assertEqual(2, payload["card_count"])
+        for row, card in zip(payload["cards"], cards):
+            self.assertEqual(card.front, row["front"])
+            self.assertEqual(card.back, row["back"])
+            self.assertEqual(card.guid_seed, row["guid_seed"])
+            self.assertEqual("longman", row["content"]["definition"]["source"])
+
     def test_preview_contains_all_active_senses_and_provenance(self):
         contents = [resolved(index) for index in range(1, 9)]
         cards = [card(content) for content in contents]

@@ -9,6 +9,11 @@ from unittest.mock import patch
 from urllib.parse import urljoin
 
 from anki_generator.dictionary import cambridge, longman, oxford
+from anki_generator.models import (
+    ProviderSense,
+    ResolvedCanonicalContent,
+    ResolvedContentField,
+)
 from tests.dictionary_page_snapshot import read_page
 from tests.support import DictionaryFixtureHTTP, GOLDEN_ROOT, load_json
 
@@ -59,6 +64,100 @@ class ProviderSenseModelTests(unittest.TestCase):
                     )
                 ]
         self.assertEqual(expected, actual)
+
+    def test_signpost_fields_default_to_empty_for_existing_constructors(self):
+        sense = ProviderSense("longman", "L1", "noun", "a definition")
+        self.assertEqual("", sense.signpost)
+        content = ResolvedCanonicalContent(
+            word="territory",
+            pos="noun",
+            index=1,
+            canonical_key="territory-1",
+            status="active",
+            definition=ResolvedContentField(),
+            example=ResolvedContentField(),
+            example_audio=ResolvedContentField(),
+            ipa=ResolvedContentField(),
+        )
+        self.assertEqual("", content.definition_signpost)
+
+    def test_territory_signposts_and_thesaurus_stay_with_native_senses(self):
+        page = (
+            Path(__file__).resolve().parents[1]
+            / "docs" / "dictionary" / "territory" / "territory_longman.md"
+        )
+        entries = longman.parse_longman_provider_entries(
+            page.read_text(encoding="utf-8"),
+            "https://www.ldoceonline.com/dictionary/territory",
+            "territory",
+        )
+        self.assertEqual(["ldoce", "business"], [entry.dataset for entry in entries])
+        senses = {sense.native_id: sense for entry in entries for sense in entry.senses}
+        self.assertEqual(
+            {
+                "territory__1": "government/military",
+                "territory__2": "type of land",
+                "territory__3": "animal",
+                "territory__4": "new or familiar experience",
+                "territory__5": "business",
+                "territory__7": "land that is not a state",
+                "territory__9": "",
+                "territory__10": "",
+                "territory__11": "",
+                "territory__12": "",
+            },
+            {native_id: sense.signpost for native_id, sense in senses.items()},
+        )
+        self.assertEqual(["land"], senses["territory__1"].thesaurus_terms)
+        for native_id, sense in senses.items():
+            if native_id != "territory__1":
+                self.assertEqual([], sense.thesaurus_terms, native_id)
+        self.assertEqual(["territory__6"], entries[0].cross_reference_ids)
+        self.assertNotIn("territory__6", senses)
+        self.assertEqual(
+            "The plane was flying over enemy territory.",
+            senses["territory__1"].examples[0].text,
+        )
+
+    def test_longman_signpost_cleaning_and_missing_values_in_each_dataset(self):
+        for entry_class in ("ldoceEntry", "bussdictEntry"):
+            with self.subTest(entry_class=entry_class):
+                body = f'''
+                    <span class="{entry_class} Entry">
+                      <span class="Head">
+                        <span class="HWD">territory</span>
+                        <span class="POS">noun</span>
+                      </span>
+                      <span class="Sense" id="L1">
+                        <span class="SIGNPOST">
+                          Government/<span>Military</span> &amp; &lt;Land&gt;
+                        </span>
+                        <span class="DEF">first definition</span>
+                      </span>
+                      <span class="Sense" id="L2">
+                        <span class="GRAM">countable</span>
+                        <span class="COLLO">sales territory</span>
+                        <span class="LEXUNIT">negative territory</span>
+                        <span class="DEF">second definition</span>
+                      </span>
+                      <span class="Sense" id="L3">
+                        <span class="SIGNPOST"> \n &nbsp; </span>
+                        <span class="DEF">third definition</span>
+                      </span>
+                    </span>
+                '''
+                entries = longman.parse_longman_provider_entries(
+                    body, "https://www.ldoceonline.com/dictionary/territory", "territory"
+                )
+                self.assertEqual(1, len(entries))
+                self.assertEqual(
+                    ["Government/Military & <Land>", "", ""],
+                    [sense.signpost for sense in entries[0].senses],
+                )
+                self.assertEqual(
+                    ["first definition", "second definition", "third definition"],
+                    [sense.definition for sense in entries[0].senses],
+                )
 
     def test_yield_longman_enrichment_stays_with_its_native_sense(self):
         entries = longman.parse_longman_provider_entries(

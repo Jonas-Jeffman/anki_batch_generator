@@ -264,6 +264,11 @@ def resolve_canonical_content(
             if definition_sense and definition_sense.source == "longman"
             else []
         ),
+        definition_signpost=(
+            definition_sense.signpost
+            if definition_sense and definition_sense.source == "longman"
+            else ""
+        ),
     )
 
 

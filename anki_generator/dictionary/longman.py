@@ -344,6 +344,13 @@ def parse_longman_provider_entries(
                         dom_path=f"{sense_path} .EXAMPLE:nth-of-type({example_index})",
                     )
                 )
+            signpost_node = sense_node.find_first("span", "SIGNPOST")
+            # Protect decoded DOM text from the cleaner's HTML tag stripping.
+            signpost = (
+                _clean_dictionary_text(html.escape(signpost_node.text_content()))
+                if signpost_node
+                else ""
+            )
             synonyms, thesaurus_terms = _longman_sense_enrichment(sense_node)
             senses.append(
                 ProviderSense(
@@ -356,6 +363,7 @@ def parse_longman_provider_entries(
                     definition_dom_path=f"{sense_path} > .DEF",
                     synonyms=synonyms,
                     thesaurus_terms=thesaurus_terms,
+                    signpost=signpost,
                 )
             )
         entries.append(
